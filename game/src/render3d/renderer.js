@@ -15,7 +15,7 @@ export function createWorldRenderer(glCanvas) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.12;
+  renderer.toneMappingExposure = 1.15;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x160a08);
@@ -70,19 +70,24 @@ export function createWorldRenderer(glCanvas) {
     camera.updateProjectionMatrix();
   }
 
-  function applyCameraForMode(mode) {
+  function applyCameraForMode(state) {
+    const mode = state.mode;
     if (mode === 'finish') {
-      camera.fov = 42;
-      camera.position.set(0.0, 1.82, 2.95);
-      camera.lookAt(0.0, 0.36, -1.45);
+      camera.fov = 34;
+      camera.position.set(0.16, 2.95, 3.35);
+      camera.lookAt(0.32, 1.04, -0.35);
     } else if (mode === 'route') {
-      camera.fov = 45;
-      camera.position.set(3.4, 8.8, 8.4);
-      camera.lookAt(1.6, 0.4, -0.1);
-    } else {
+      camera.fov = 38;
+      camera.position.set(9.0, 9.6, 9.8);
+      camera.lookAt(2.5, 0.35, 0.1);
+    } else if (state.povMode === 'overhead') {
       camera.fov = 42;
-      camera.position.set(0.0, 8.35, 8.15);
-      camera.lookAt(0.0, 0.45, 0.15);
+      camera.position.set(0.0, 10.6, 7.2);
+      camera.lookAt(0.0, 0.4, 0.2);
+    } else {
+      camera.fov = 36;
+      camera.position.set(6.9, 7.0, 7.8);
+      camera.lookAt(0.0, 0.92, 0.08);
     }
     camera.updateProjectionMatrix();
   }
@@ -91,7 +96,7 @@ export function createWorldRenderer(glCanvas) {
     const isFinish = state.mode === 'finish';
     kitchenGroup.visible = !isFinish;
     finishHall.group.visible = isFinish;
-    applyCameraForMode(state.mode);
+    applyCameraForMode(state);
 
     if (!isFinish) {
       chef.update(state, state.time);

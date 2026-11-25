@@ -13,10 +13,11 @@ export function drawControlDock(ctx, state, w, h) {
   const px = compact ? 8 : 10;
 
   const pills = [
-    { id: 'dock_move', key: 'WASD / CLICK', label: 'MOVE', hit: false },
-    { id: 'dock_wok', key: 'E', label: 'SWEET-SPOT WOK', hit: true },
-    { id: 'dock_serve', key: 'SPACE', label: 'SERVE BELL', hit: true },
-    { id: 'dock_route', key: '1-3', label: 'KITCHEN ROUTE', hit: true },
+    { id: 'dock_move', key: 'WASD/CLICK', label: 'MOVE', hit: false },
+    { id: 'dock_wok', key: 'E', label: 'WOK', hit: true },
+    { id: 'dock_serve', key: 'SPACE', label: 'SERVE', hit: true },
+    { id: 'dock_route', key: '1-3', label: 'ROUTE', hit: true },
+    { id: 'dock_pov', key: 'V', label: state.povMode === 'overhead' ? 'POV TOP' : 'POV 3/4', hit: true },
     { id: 'dock_finish', key: 'F', label: 'FINISH', hit: true },
     { id: 'dock_sfx', key: 'M', label: state.audioMuted ? 'SFX OFF' : 'SFX ON', hit: true, sfx: true },
     { id: 'dock_hold', key: 'HOLD', label: String(state.chef.holding || 'DUMPLINGS').toUpperCase(), hit: false, hold: true },
@@ -24,7 +25,7 @@ export function drawControlDock(ctx, state, w, h) {
 
   ctx.save();
   const fontSize = compact ? 10 : 11;
-  ctx.font = `bold ${fontSize}px ${FONT_UI}`;
+  ctx.font = `800 ${fontSize}px ${FONT_UI}`;
 
   const measured = pills.map((p) => {
     const keyW = ctx.measureText(p.key).width + (compact ? 11 : 13);
@@ -43,7 +44,6 @@ export function drawControlDock(ctx, state, w, h) {
     const stroke = p.hold ? THEME.brass : p.sfx && !state.audioMuted ? THEME.jade : THEME.brass;
     drawPlaque(ctx, curX, y, p.pw, dockH, fill, stroke, 1.5, 7);
 
-    // Keycap badge
     drawPlaque(ctx, curX + px, y + 7, p.keyW, 24, THEME.ricePaperWarm, THEME.brass, 1, 4);
     ctx.fillStyle = THEME.ink;
     ctx.textAlign = 'center';

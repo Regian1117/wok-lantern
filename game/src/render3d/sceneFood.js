@@ -77,24 +77,51 @@ function populateCrate(grp, kind, mats) {
 
 export function buildPekingDuckPlatter(mats, scale = 1) {
   const g = new THREE.Group();
-  const platter = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.38, 0.05, 8), mats.lacquerMat);
+  const crimsonRimMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.24, metalness: 0.12 });
+  const platter = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.4, 0.055, 8), crimsonRimMat);
   platter.castShadow = true;
   g.add(platter);
-  for (let i = 0; i < 9; i++) {
-    const slice = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.035, 0.06), mats.duckMat);
-    slice.position.set(-0.18 + (i % 3) * 0.14, 0.045, -0.14 + Math.floor(i / 3) * 0.09);
-    slice.rotation.y = 0.25;
+
+  const goldRim = new THREE.Mesh(new THREE.TorusGeometry(0.43, 0.018, 8, 8), mats.brassMat);
+  goldRim.rotation.x = Math.PI / 2;
+  goldRim.rotation.z = Math.PI / 8;
+  goldRim.position.y = 0.032;
+  const ivoryWell = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.014, 8), mats.ceramicMat);
+  ivoryWell.position.y = 0.028;
+  g.add(goldRim, ivoryWell);
+
+  const brightDuckMat = new THREE.MeshStandardMaterial({
+    color: 0xb43b16,
+    emissive: 0x381004,
+    emissiveIntensity: 0.45,
+    roughness: 0.18,
+    metalness: 0.06,
+  });
+  for (let i = 0; i < 8; i++) {
+    const row = Math.floor(i / 4);
+    const col = i % 4;
+    const slice = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.036, 0.058), brightDuckMat);
+    slice.position.set(-0.18 + col * 0.1, 0.054, -0.09 + row * 0.085);
+    slice.rotation.y = 0.22;
     g.add(slice);
   }
+
+  const cucMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.32, metalness: 0.02 });
+  for (let d = 0; d < 6; d++) {
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.016, 10), cucMat);
+    disc.position.set(-0.26 + d * 0.052, 0.048, 0.12 + (d % 2) * 0.045);
+    g.add(disc);
+  }
+
   for (let c = 0; c < 3; c++) {
     const crepe = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.014, 12), mats.dumplingMat);
-    crepe.position.set(0.16, 0.035 + c * 0.015, 0.14);
+    crepe.position.set(0.17, 0.042 + c * 0.015, 0.14);
     g.add(crepe);
   }
   const hoisin = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.05, 12), mats.ceramicMat);
-  hoisin.position.set(-0.18, 0.05, 0.18);
-  const sauce = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.01, 12), mats.glazeMat);
-  sauce.position.set(-0.18, 0.075, 0.18);
+  hoisin.position.set(-0.16, 0.055, 0.2);
+  const sauce = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.012, 12), mats.glazeMat);
+  sauce.position.set(-0.16, 0.082, 0.2);
   g.add(hoisin, sauce);
   g.scale.setScalar(scale);
   return g;

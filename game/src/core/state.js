@@ -77,6 +77,7 @@ export function createGameState(seed = 1) {
     time: 0,
     paused: false,
     shotMode: null,
+    povMode: 'diagonal',
     audioMuted: false,
     chopMeter: 0.52,
     chopDir: 1,

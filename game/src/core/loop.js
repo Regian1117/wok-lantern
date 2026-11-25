@@ -18,6 +18,9 @@ function handleModeInputs(state, actions, audio) {
     state.audioMuted = !state.audioMuted;
     if (audio) audio.setMuted(state.audioMuted);
   }
+  if (actions.KeyV && state.mode !== 'finish') {
+    state.povMode = state.povMode === 'diagonal' ? 'overhead' : 'diagonal';
+  }
   if (actions.Escape && state.mode !== 'kitchen') {
     state.mode = 'kitchen';
     return;

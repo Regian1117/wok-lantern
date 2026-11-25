@@ -15,6 +15,8 @@ function handleHudAction(hit, state, audio) {
     if (audio) audio.setMuted(state.audioMuted);
   } else if (id === 'dock_route') {
     state.mode = state.mode === 'route' ? 'kitchen' : 'route';
+  } else if (id === 'dock_pov') {
+    state.povMode = state.povMode === 'diagonal' ? 'overhead' : 'diagonal';
   } else if (id === 'dock_finish') {
     enterFinishingPass(state);
   } else if (id === 'dock_serve') {

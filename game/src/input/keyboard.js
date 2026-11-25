@@ -12,6 +12,7 @@ export function createKeyboardInput() {
     'Digit3',
     'Digit4',
     'KeyM',
+    'KeyV',
     'Escape',
     'Enter',
   ]);

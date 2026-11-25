@@ -33,11 +33,30 @@ export function buildChefMesh(mats) {
     root.add(clasp);
   }
 
-  // Head + top-knot + crimson-gold hachimaki headband + tails
+  // Head + expressive eyes/catchlights + cheeks + mustache + top-knot + hachimaki
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 14), mats.skinMat);
   head.position.set(0, 1.46, 0);
   head.castShadow = true;
   root.add(head);
+
+  const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const cheekMat = new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.65 });
+  for (const ex of [-0.07, 0.07]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), mats.hairMat);
+    eye.position.set(ex, 1.47, 0.185);
+    const catchlight = new THREE.Mesh(new THREE.SphereGeometry(0.009, 6, 6), eyeWhiteMat);
+    catchlight.position.set(ex + 0.008, 1.478, 0.205);
+    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), cheekMat);
+    cheek.scale.set(1, 0.6, 0.5);
+    cheek.position.set(ex * 1.45, 1.425, 0.175);
+    root.add(eye, catchlight, cheek);
+  }
+  for (const mx of [-0.035, 0.035]) {
+    const stache = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.02, 0.02), mats.hairMat);
+    stache.position.set(mx, 1.405, 0.195);
+    stache.rotation.z = mx < 0 ? 0.2 : -0.2;
+    root.add(stache);
+  }
 
   const hair = new THREE.Mesh(new THREE.SphereGeometry(0.21, 14, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), mats.hairMat);
   hair.position.set(0, 1.48, -0.01);
