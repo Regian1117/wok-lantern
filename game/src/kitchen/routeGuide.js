@@ -5,50 +5,54 @@ export function computeLiveNextStep(state) {
   let stepNumber = 4;
   let stepName = 'SERVE';
   let shortAction = '[E/SPACE] SERVE PASS';
-  let prefix = 'NEXT 4/4: Deliver to PASS';
+  let prefix = 'NEXT 4/4: PASS';
+  let keyHint = '[SPACE]';
 
   if (state.mode === 'finish') {
     const fin = buildFloorRoute(chef, 'pass');
-    return { targetStationId: 'pass', stepNumber: 4, stepName: 'FINISH', bannerText: 'NEXT 4/4: Glaze [1-4] & Ring Bell [SPACE]', shortAction: '[SPACE] SERVE', walkSec: fin.walkSec, routeStops: fin.routeStops };
+    return { targetStationId: 'pass', stepNumber: 4, stepName: 'FINISH', bannerText: 'NEXT 4/4: GLAZE [1-4] · BELL [SPACE]', shortAction: '[SPACE] SERVE', walkSec: fin.walkSec, routeStops: fin.routeStops };
   }
   if (chef.cookedDish) {
     if (chef.cookedDish.base === 'Duck' && !chef.cookedDish.finished) {
-      prefix = 'NEXT 4/4: Press [F] to Glaze VIP Duck';
+      prefix = 'NEXT 4/4: GLAZE VIP';
       stepName = 'FINISH';
       shortAction = '[F] GLAZE VIP';
+      keyHint = '[F]';
     }
   } else if (chef.holding && !chef.prepped) {
     targetStationId = 'chop';
     stepNumber = 2;
     stepName = 'CHOP';
-    prefix = `NEXT 2/4: Prep ${String(chef.holding).toUpperCase()} at Stump`;
+    prefix = `NEXT 2/4: CHOP ${String(chef.holding).toUpperCase()}`;
     shortAction = '[E/SPACE] CHOP';
+    keyHint = '[E]';
   } else if (chef.holding && chef.prepped) {
     const matchOrd = (state.orders || []).find((o) => o.base.toLowerCase().startsWith(String(chef.holding).slice(0, 4))) || ord;
     targetStationId = matchOrd ? (PATH_STATION_MAP[matchOrd.stationPath] || 'wok_right') : 'wok_right';
     stepNumber = 3;
     stepName = 'COOK';
     const stName = targetStationId === 'steamer' ? 'STEAMER' : targetStationId === 'island' ? 'ISLAND' : 'RIGHT WOK';
-    prefix = `NEXT 3/4: Cook at ${stName}`;
+    prefix = `NEXT 3/4: ${stName}`;
     shortAction = `[E] COOK IN ${stName}`;
+    keyHint = '[E]';
   } else {
     targetStationId = ord ? (BASE_CRATE_MAP[ord.base] || 'crate_prawn') : 'crate_prawn';
     const ingName = ord ? ord.base.toUpperCase() : 'PRAWN';
     stepNumber = 1;
     stepName = 'LARDER';
-    prefix = `NEXT 1/4: Pick ${ingName} at Crate`;
+    prefix = `NEXT 1/4: ${ingName}`;
     shortAction = `[E] PICK ${ingName}`;
+    keyHint = '[E]';
   }
 
   const { routeStops, walkSec } = buildFloorRoute(chef, targetStationId);
-  const keyHint = stepNumber === 1 ? '[E]' : '[E/SPACE]';
   return {
     targetStationId,
     stepNumber,
     stepName,
     walkSec,
     routeStops,
-    bannerText: `${prefix} (${walkSec.toFixed(1)}s walk) ${keyHint}`,
+    bannerText: `${prefix} · ${walkSec}s WALK ${keyHint}`,
     shortAction,
   };
 }
@@ -81,8 +85,7 @@ function appendFloorSegment(stops, ax, az, bx, bz, endLabel) {
     let bestPts = [[2.05, az < 0 ? -1.35 : 1.5]];
     let bestLen = Infinity;
     for (const [cA, cB] of lanes) {
-      const cands = [[cA], [cB], [cA, cB], [cB, cA]];
-      for (const pts of cands) {
+      for (const pts of [[cA], [cB], [cA, cB], [cB, cA]]) {
         const seq = [[ax, az], ...pts, [bx, bz]];
         let ok = true;
         let len = 0;
@@ -105,7 +108,7 @@ function buildFloorRoute(chef, targetId) {
   if (targetId !== 'pass') appendFloorSegment(stops, tgt[0], tgt[1], STATION_POS.pass[0], STATION_POS.pass[1], 'PASS');
   let totalDist = 0;
   for (let i = 0; i < stops.length - 1; i++) totalDist += Math.hypot(stops[i + 1].x - stops[i].x, stops[i + 1].z - stops[i].z);
-  const walkSec = Math.round((totalDist / Math.max(1, chef.moveSpeed || 3.4)) * 10) / 10;
+  const walkSec = totalDist < 0.08 ? 0 : Math.max(1, Math.round(totalDist / Math.max(1, chef.moveSpeed || 3.4)));
   return { routeStops: stops, walkSec };
 }
 

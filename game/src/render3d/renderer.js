@@ -33,8 +33,8 @@ export function createWorldRenderer(glCanvas) {
   scene.add(kitchenGroup);
 
   const targetBeaconRing = new THREE.Mesh(
-    new THREE.RingGeometry(0.45, 0.62, 28),
-    new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }),
+    new THREE.RingGeometry(0.46, 0.64, 28),
+    new THREE.MeshStandardMaterial({ color: 0xf7d070, emissive: 0xf7d070, emissiveIntensity: 0.85, roughness: 0.2, metalness: 0.6, side: THREE.DoubleSide, transparent: true, opacity: 0.92 }),
   );
   targetBeaconRing.rotation.x = -Math.PI / 2;
   targetBeaconRing.position.y = 0.03;
@@ -96,7 +96,7 @@ export function createWorldRenderer(glCanvas) {
         rim.visible = state.nextCrateIds.includes(id);
         if (rim.visible) rim.scale.setScalar(1 + pulse * 0.04);
       }
-      const nextSt = !state.shotMode && state.mode === 'kitchen'
+      const nextSt = state.mode === 'kitchen' && (!state.shotMode || state.shotMode === 'hero')
         ? KITCHEN_STATIONS.find((s) => s.id === computeLiveNextStep(state).targetStationId)
         : null;
       targetBeaconRing.visible = Boolean(nextSt);

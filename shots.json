@@ -1,6 +1,5 @@
 [
   { "name": "1-hero.jpg", "query": "?shot=hero&seed=1" },
-  { "name": "2-finish.jpg", "query": "?shot=finish&seed=1" },
-  { "name": "3-route.jpg", "query": "?shot=route&seed=1" },
-  { "name": "4-ledger.jpg", "query": "?shot=ledger&seed=1" }
+  { "name": "2-route.jpg", "query": "?shot=route&seed=1" },
+  { "name": "3-ledger.jpg", "query": "?shot=ledger&seed=1" }
 ]

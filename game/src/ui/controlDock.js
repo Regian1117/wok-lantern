@@ -1,7 +1,7 @@
 export const CONTROL_DOCK_ID = 'controlDock';
 
 import { FONT_UI, drawPlaque, drawBrassPullBar, drawBrassDrawerButton, registerHitbox } from './hudTheme.js';
-import { drawSpeakerIcon, drawCheckIcon } from './vectorIcons.js';
+import { drawCheckIcon } from './vectorIcons.js';
 
 function getHoldDescriptor(chef) {
   if (chef.cookedDish) return { text: `PLATED: ${chef.cookedDish.base.toUpperCase()}`, variant: 'jade', checked: true };
@@ -61,9 +61,7 @@ export function drawControlDock(ctx, state, w, h) {
     if (sl.kind === 'modes') {
       drawGroupedModesChip(ctx, state, curX, y, sl.w, bh);
     } else if (sl.kind === 'sfx') {
-      drawBrassDrawerButton(ctx, curX, y, sl.w, bh, sl.key, sl.label, sl.variant, (c, ix, iy) =>
-        drawSpeakerIcon(c, ix, iy, 11, state.audioMuted, state.audioMuted ? '#B91C1C' : '#14532D'),
-      );
+      drawBrassDrawerButton(ctx, curX, y, sl.w, bh, sl.key, sl.label, sl.variant);
       registerHitbox(state, sl.id, curX, y, sl.w, bh);
     } else if (sl.kind === 'hold') {
       const iconFn = sl.checked ? (c, ix, iy) => drawCheckIcon(c, ix, iy, 9.5, '#15803D') : null;

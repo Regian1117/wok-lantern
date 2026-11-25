@@ -64,12 +64,13 @@ export function drawOrderBoardHud(ctx, state, w) {
     ctx.font = `800 ${compact ? 9.5 : 10.5}px ${FONT_UI}`;
     ctx.fillText(ord.stepLabel, tx + 35, topY + 46, ticketW - 41);
 
-    drawTicketStepChips(ctx, tx + 6, topY + 52, ticketW - 12, ord, state.chef, state.batchPrep);
+    drawTicketStepChips(ctx, tx + 6, topY + 51, ticketW - 12, ord, state.chef, state.batchPrep);
     const ratio = Math.max(0, Math.min(1, ord.timeLeft / Math.max(1, ord.maxTime)));
+    const barY = Math.round(topY + 70);
     ctx.fillStyle = '#E5D5BE';
-    ctx.fillRect(tx + 6, topY + 71, ticketW - 12, 4.5);
-    ctx.fillStyle = ord.urgent ? '#DC2626' : ord.vip ? '#D97706' : THEME.jade;
-    ctx.fillRect(tx + 6, topY + 71, (ticketW - 12) * ratio, 4.5);
+    ctx.fillRect(tx + 6, barY, ticketW - 12, 7.5);
+    ctx.fillStyle = (ord.urgent || ratio <= 0.25) ? '#DC2626' : ratio <= 0.5 ? '#D97706' : '#15803D';
+    ctx.fillRect(tx + 6, barY, Math.round((ticketW - 12) * ratio), 7.5);
   }
 
   const sx = w - sidePad - scoreW;

@@ -5,7 +5,7 @@ import { KITCHEN_UPGRADES } from '../shifts/upgrades.js';
 
 const BASE_CARDS = [
   ['NOODLES', '$34', 'Char Kway Teow · Lo Mein · Dan Dan', '#EAB308', 0],
-  ['DUMPLINGS', '$38', 'Xiaolongbao · Potsticker · Wonton', '#D97706', 0],
+  ['DUMPLINGS', '$38', 'Xiaolongbao · Gyoza · Jade Wonton', '#D97706', 0],
   ['PEKING DUCK', '$74', 'VIP Carve · Wok Duck · Tea-Smoked', '#991B1B', 1],
   ['CHILI PRAWN', '$46', 'Tiger Prawn · Garlic Steam · Trio', '#E11D48', 0],
 ];
@@ -48,11 +48,11 @@ export function drawRecipeRouteModal(ctx, state, w, h) {
     const cy = gridY + Math.floor(i / 2) * (ch + 10);
     drawLacquerFrame(ctx, cx, cy, cw, ch, vip ? '#FEF3C7' : '#FFF9EE', vip ? '#D97706' : '#C9B190', 8, false);
     ctx.fillStyle = accent; ctx.fillRect(cx + 2, cy + 2, 7, ch - 4);
-    ctx.textAlign = 'left'; ctx.fillStyle = THEME.ink; ctx.font = `900 ${compact ? 14.5 : 16}px ${FONT_UI}`;
-    ctx.fillText(title, cx + 16, cy + 30);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#1E100B'; ctx.font = `900 15.5px ${FONT_UI}`;
+    ctx.fillText(title, cx + 14, cy + 29);
     drawHankoPriceSeal(ctx, cx + cw - 24, cy + 25, price, 34, 20);
-    ctx.textAlign = 'left'; ctx.fillStyle = THEME.subtleInk; ctx.font = `700 10px ${FONT_UI}`;
-    ctx.fillText(paths, cx + 16, cy + ch - 16, cw - 24);
+    ctx.textAlign = 'left'; ctx.fillStyle = THEME.subtleInk; ctx.font = `700 10.5px ${FONT_UI}`;
+    ctx.fillText(paths, cx + 14, cy + ch - 15, cw - 20);
   });
 
   const uy = gridY + 2 * (ch + 10) + 10;

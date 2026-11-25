@@ -95,19 +95,20 @@ function drawRadialGauge(ctx, x, y, progress, label) {
 
 function drawNextBar(ctx, guide, state, w, h) {
   const bt = getBatchSummaryLabel(state);
-  const barY = h - 68;
-  ctx.font = `800 10.5px ${FONT_UI}`;
-  const mw = Math.ceil(ctx.measureText(guide.bannerText).width + 22);
-  const bw = bt ? Math.ceil(ctx.measureText(bt).width + 18) : 0;
-  const totalW = mw + (bw ? bw + 8 : 0);
+  const barY = h - 69;
+  const barH = 24;
+  ctx.font = `800 11.5px ${FONT_UI}`;
+  const mw = Math.ceil(ctx.measureText(guide.bannerText).width + 24);
+  const bw = bt ? Math.ceil(ctx.measureText(bt).width + 20) : 0;
+  const totalW = mw + (bw ? bw + 10 : 0);
   const sx = Math.round((w - totalW) / 2);
-  drawLacquerFrame(ctx, sx, barY, mw, 22, '#3A0A0A', '#D49B35', 6, false);
-  ctx.fillStyle = '#F7D070'; ctx.textAlign = 'center'; ctx.fillText(guide.bannerText, sx + mw / 2, barY + 14.8);
+  drawLacquerFrame(ctx, sx, barY, mw, barH, '#3A0A0A', '#D49B35', 6, false);
+  ctx.fillStyle = '#F7D070'; ctx.textAlign = 'center'; ctx.fillText(guide.bannerText, sx + mw / 2, barY + 16);
   if (bw > 0) {
-    drawLacquerFrame(ctx, sx + mw + 8, barY, bw, 22, THEME.jadeSoft, THEME.jade, 6, false);
-    ctx.fillStyle = '#14532D'; ctx.fillText(bt, sx + mw + 8 + bw / 2, barY + 14.8);
+    drawLacquerFrame(ctx, sx + mw + 10, barY, bw, barH, THEME.jadeSoft, THEME.jade, 6, false);
+    ctx.fillStyle = '#14532D'; ctx.fillText(bt, sx + mw + 10 + bw / 2, barY + 16);
   }
-  state.hudBounds.nextBar = { x: sx, y: barY, w: totalW, h: 22 };
+  state.hudBounds.nextBar = { x: sx, y: barY, w: totalW, h: barH };
 }
 
 export function drawStationCallouts(ctx, state, api, w, h) {
