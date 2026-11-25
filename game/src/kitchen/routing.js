@@ -24,16 +24,16 @@ export function buildCriticalPath() {
 
 export function getHighlightedCrates(state) {
   if (state.shotMode === 'hero' || state.shotMode === 'route') {
-    return ['crate_chili', 'crate_prawn'];
+    state.batchCrateId = 'crate_chili';
+    return ['crate_prawn'];
   }
-  const nextIds = [];
+  state.batchCrateId = state.batchPrep && (state.batchPrep.chili > 0 || state.shiftIndex >= 0) ? 'crate_chili' : null;
+  let urgentOrd = null;
   for (const ord of state.orders || []) {
-    const cid = INGREDIENT_TO_CRATE[ord.nextIng];
-    if (cid && !nextIds.includes(cid)) nextIds.push(cid);
-    if (nextIds.length >= 2) break;
+    if (!urgentOrd || ord.timeLeft < urgentOrd.timeLeft) urgentOrd = ord;
   }
-  if (!nextIds.includes('crate_prawn')) nextIds.unshift('crate_prawn');
-  return nextIds.slice(0, 2);
+  const cid = urgentOrd ? INGREDIENT_TO_CRATE[urgentOrd.nextIng] : 'crate_prawn';
+  return [cid || 'crate_prawn'];
 }
 
 export function resolveNextStationForOrder(order) {

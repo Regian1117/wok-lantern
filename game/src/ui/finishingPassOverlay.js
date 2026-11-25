@@ -1,6 +1,6 @@
 export const FINISHING_OVERLAY_ID = 'finishingPassOverlay';
 
-import { THEME, FONT_SERIF, FONT_UI, drawPlaque, registerHitbox } from './hudTheme.js';
+import { THEME, FONT_SERIF, FONT_UI, drawLacquerFrame, drawBrassDrawerButton, drawHankoPriceSeal, registerHitbox } from './hudTheme.js';
 import { drawCheckIcon, drawPlayTriangleIcon, drawHollowCircleIcon } from './vectorIcons.js';
 import { SAUCES } from '../recipes/catalog.js';
 
@@ -8,116 +8,86 @@ export function drawFinishingPassOverlay(ctx, state, w, h) {
   if (state.mode !== 'finish') return;
 
   const fin = state.finishing;
-  // Top-left subtle mode badge + back button
-  drawPlaque(ctx, 16, 14, 240, 40, THEME.lacquer, THEME.brass, 1.5, 8);
-  ctx.fillStyle = THEME.brassBright;
+  drawLacquerFrame(ctx, 16, 14, 244, 42, '#3A0A0A', '#F2C14E', 8, true);
+  ctx.fillStyle = '#F7D070';
   ctx.font = `bold 13px ${FONT_SERIF}`;
   ctx.textAlign = 'left';
-  ctx.fillText('FINISHING PASS · MACRO', 28, 39);
+  ctx.fillText('FINISHING PASS · MACRO', 30, 40);
 
-  drawPlaque(ctx, 266, 14, 88, 40, THEME.ricePaper, THEME.brass, 1.5, 8);
-  ctx.fillStyle = THEME.ink;
-  ctx.font = `bold 11px ${FONT_UI}`;
-  ctx.textAlign = 'center';
-  ctx.fillText('BACK [F]', 310, 38);
-  registerHitbox(state, 'finish_back', 266, 14, 88, 40);
+  drawBrassDrawerButton(ctx, 270, 15, 96, 40, 'F', 'BACK', 'lacquer');
+  registerHitbox(state, 'finish_back', 270, 15, 96, 40);
 
-  // Right-side Checklist Card
-  const cardW = 286;
-  const cardH = 304;
+  const cardW = 296;
+  const cardH = 316;
   const cx = w - cardW - 18;
-  const cy = Math.round((h - cardH) * 0.44);
-  drawPlaque(ctx, cx, cy, cardW, cardH, THEME.ricePaper, THEME.brass, 2, 10);
+  const cy = Math.round((h - cardH) * 0.43);
+  drawLacquerFrame(ctx, cx, cy, cardW, cardH, THEME.ricePaper, '#D49B35', 10, true);
 
-  ctx.fillStyle = THEME.lacquer;
-  ctx.fillRect(cx + 2, cy + 2, cardW - 4, 42);
-  ctx.fillStyle = THEME.vipGold;
-  ctx.font = `bold 17px ${FONT_SERIF}`;
+  ctx.fillStyle = '#3A0A0A';
+  ctx.fillRect(cx + 2, cy + 2, cardW - 4, 46);
+  ctx.fillStyle = '#F7D070';
+  ctx.font = `900 18px ${FONT_SERIF}`;
   ctx.textAlign = 'left';
-  ctx.fillText(`FINISH · $${fin.price}`, cx + 16, cy + 29);
+  ctx.fillText(`FINISH · $${fin.price}`, cx + 16, cy + 31);
+  drawHankoPriceSeal(ctx, cx + cardW - 32, cy + 25, 'VIP', 38, 19);
 
-  ctx.textAlign = 'right';
-  ctx.fillStyle = THEME.brassBright;
-  ctx.font = `bold 12px ${FONT_UI}`;
-  ctx.fillText('VIP PLATING', cx + cardW - 16, cy + 29);
-
-  // 3 checklist rows with vector icons only
   for (let i = 0; i < fin.steps.length; i++) {
     const st = fin.steps[i];
-    const ry = cy + 58 + i * 44;
+    const ry = cy + 60 + i * 46;
     const isAct = st.status === 'active';
     const isDone = st.status === 'done';
-    drawPlaque(
+    drawLacquerFrame(
       ctx,
       cx + 14,
       ry,
       cardW - 28,
-      36,
-      isAct ? THEME.vipGold : isDone ? THEME.jadeSoft : '#EFE4D1',
-      isAct ? THEME.brass : isDone ? THEME.jade : '#CBB59B',
-      1.5,
+      38,
+      isAct ? '#FEF3C7' : isDone ? THEME.jadeSoft : '#EFE4D1',
+      isAct ? '#D97706' : isDone ? THEME.jade : '#CBB59B',
       6,
+      false,
     );
-
-    if (isDone) drawCheckIcon(ctx, cx + 32, ry + 18, 13, THEME.jade);
-    else if (isAct) drawPlayTriangleIcon(ctx, cx + 32, ry + 18, 12, THEME.brass);
-    else drawHollowCircleIcon(ctx, cx + 32, ry + 18, 13, THEME.subtleInk);
-
+    if (isDone) drawCheckIcon(ctx, cx + 32, ry + 19, 14, THEME.jade);
+    else if (isAct) drawPlayTriangleIcon(ctx, cx + 32, ry + 19, 13, '#D97706');
+    else drawHollowCircleIcon(ctx, cx + 32, ry + 19, 14, THEME.subtleInk);
     ctx.textAlign = 'left';
-    ctx.fillStyle = isDone ? THEME.jade : THEME.ink;
-    ctx.font = `bold 12px ${FONT_UI}`;
-    ctx.fillText(st.label, cx + 50, ry + 22);
+    ctx.fillStyle = isDone ? '#14532D' : THEME.ink;
+    ctx.font = `800 14px ${FONT_UI}`;
+    ctx.fillText(st.label, cx + 52, ry + 24);
   }
 
-  // Tip badge
-  const tipY = cy + 196;
-  drawPlaque(ctx, cx + 14, tipY, cardW - 28, 34, THEME.vipGold, THEME.brass, 1.4, 6);
+  const tipY = cy + 204;
+  drawLacquerFrame(ctx, cx + 14, tipY, cardW - 28, 36, '#FEF3C7', '#D49B35', 6, false);
   ctx.textAlign = 'left';
   ctx.fillStyle = THEME.subtleInk;
-  ctx.font = `bold 11px ${FONT_UI}`;
-  ctx.fillText('GLAZE PRESENTATION BONUS', cx + 26, tipY + 21);
+  ctx.font = `800 11px ${FONT_UI}`;
+  ctx.fillText('GLAZE PRESENTATION', cx + 24, tipY + 22);
   ctx.textAlign = 'right';
   ctx.fillStyle = THEME.jade;
-  ctx.font = `bold 14px ${FONT_UI}`;
-  ctx.fillText(`TIP +$${fin.tipBonus}`, cx + cardW - 24, tipY + 22);
+  ctx.font = `900 15px ${FONT_UI}`;
+  ctx.fillText(`TIP +$${fin.tipBonus}`, cx + cardW - 24, tipY + 23);
 
-  // Serve Bell Button
-  const btnY = cy + 242;
-  drawPlaque(ctx, cx + 14, btnY, cardW - 28, 46, THEME.jade, '#86EFAC', 2, 8);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = `bold 14px ${FONT_UI}`;
-  ctx.fillText('[SPACE] SERVE BELL', cx + cardW / 2, btnY + 28);
-  registerHitbox(state, 'finish_serve_bell', cx + 14, btnY, cardW - 28, 46);
+  const btnY = cy + 252;
+  drawBrassDrawerButton(ctx, cx + 14, btnY, cardW - 28, 48, 'SPACE', 'SERVE BELL', 'jade');
+  registerHitbox(state, 'finish_serve_bell', cx + 14, btnY, cardW - 28, 48);
 
-  // Bottom 4-slot Lacquer/Brass Sauce Rail
-  const slotW = 148;
-  const slotH = 50;
+  const slotW = 152;
+  const slotH = 48;
   const gap = 12;
   const totalW = SAUCES.length * slotW + (SAUCES.length - 1) * gap;
   const startX = Math.round((w - totalW) / 2);
-  const railY = h - slotH - 16;
+  const railY = h - slotH - 14;
 
-  drawPlaque(ctx, startX - 14, railY - 8, totalW + 28, slotH + 16, THEME.lacquer, THEME.brass, 2, 10);
+  drawLacquerFrame(ctx, startX - 14, railY - 8, totalW + 28, slotH + 16, '#2B0808', '#D49B35', 10, true);
   SAUCES.forEach((s, idx) => {
     const sx = startX + idx * (slotW + gap);
     const selected = fin.selectedSauce === s.id;
-    drawPlaque(ctx, sx, railY, slotW, slotH, selected ? THEME.vipGold : THEME.lacquerHi, selected ? THEME.brassBright : THEME.brass, selected ? 2.2 : 1.2, 7);
-
-    ctx.fillStyle = s.accent;
-    ctx.beginPath();
-    ctx.arc(sx + 24, railY + 25, 9, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.textAlign = 'left';
-    ctx.fillStyle = selected ? THEME.ink : THEME.ricePaper;
-    ctx.font = `bold 12px ${FONT_UI}`;
-    ctx.fillText(s.label, sx + 42, railY + 24);
-
-    ctx.fillStyle = selected ? THEME.subtleInk : THEME.brassBright;
-    ctx.font = `bold 10px ${FONT_UI}`;
-    ctx.fillText(`KEY ${idx + 1}`, sx + 42, railY + 39);
-
+    drawBrassDrawerButton(ctx, sx, railY, slotW, slotH, String(idx + 1), s.label, selected ? 'gold' : 'lacquer', (c, ix, iy) => {
+      c.fillStyle = s.accent;
+      c.beginPath();
+      c.arc(ix, iy, 6.5, 0, Math.PI * 2);
+      c.fill();
+    });
     registerHitbox(state, `sauce_${s.id}`, sx, railY, slotW, slotH);
   });
 }

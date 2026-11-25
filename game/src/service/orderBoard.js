@@ -1,4 +1,48 @@
-export const ORDER_BOARD_MAX = 4;
+export function serveBestOrder(state, audio, explicitPlate = null) {
+  if (!state.orders || state.orders.length === 0) return 0;
+  const plate = explicitPlate || state.chef.cookedDish;
+  if (!plate || !plate.prepared) {
+    state.feedbackBanner = { text: state.chef.holding ? 'NEEDS CHOP & COOK' : 'CARRY A COOKED DISH', tone: 'crimson', timer: 1.6 };
+    if (audio) audio.playScorchWarn();
+    return 0;
+  }
+
+  const matchIdx = state.orders.findIndex((o) => o.base === plate.base && o.stationPath === plate.stationPath);
+  if (matchIdx === -1) {
+    const baseIdx = state.orders.findIndex((o) => o.base === plate.base);
+    const salvage = baseIdx !== -1 ? Math.round(state.orders[baseIdx].price * 0.25) : 8;
+    state.feedbackBanner = { text: baseIdx !== -1 ? 'WRONG STATION' : 'WRONG DISH', tone: 'crimson', timer: 1.6 };
+    state.stations.wokRight.heatCombo = 1;
+    state.stations.wokRight.callout = 'WOK HEI x1 · SEAR!';
+    recordDishServe(state, salvage, 0);
+    state.chef.cookedDish = null;
+    if (baseIdx !== -1) state.orders[baseIdx] = spawnNextOrder(state);
+    if (audio) audio.playScorchWarn();
+    return salvage;
+  }
+
+  const served = state.orders[matchIdx];
+  if (served.vip && !plate.finished) {
+    state.feedbackBanner = { text: 'NEEDS FINISH [F]', tone: 'amber', timer: 1.6 };
+    if (audio) audio.playScorchWarn();
+    return 0;
+  }
+
+  const batch = consumeBatchPrepForDish(state, served);
+  const moodMult = getPatronTipMultiplier(served.patron?.mood || 'HAPPY', served.vip);
+  const baseTip = plate.glazeTip || Math.round((served.vip && state.upgrades.silk_pass ? 16 : 6) * moodMult);
+  const earned = served.price + baseTip + batch.bonusTip;
+  recordDishServe(state, served.price, baseTip + batch.bonusTip);
+  recordWokHeiBonus(state, state.stations.wokRight.heatCombo, 5);
+  recomputeLedger(state);
+  state.chef.cookedDish = null;
+  state.stations.pass.servedDisplay = plate;
+  state.stations.pass.servedTimer = 3.0;
+  state.feedbackBanner = { text: batch.consumed ? `SERVED +$${earned} (+$${batch.bonusTip} ${batch.label})` : `SERVED +$${earned}`, tone: 'jade', timer: 1.6 };
+  state.orders[matchIdx] = spawnNextOrder(state);
+  if (audio) audio.playBell();
+  return earned;
+}
 
 import { TWELVE_COMBINATIONS } from '../recipes/combinations.js';
 import { rngPick } from '../core/rng.js';
@@ -6,6 +50,8 @@ import { recomputeLedger, recordDishServe, recordWokHeiBonus } from './scoringLe
 import { applyLateOrderPenalty } from './rushPacing.js';
 import { assignPatronToOrder, computePatronMood, getPatronTipMultiplier } from './guestMoods.js';
 import { consumeBatchPrepForDish } from '../recipes/batchPrep.js';
+
+export const ORDER_BOARD_MAX = 4;
 
 export function spawnNextOrder(state) {
   const unlockedBases =
@@ -53,50 +99,4 @@ export function stepOrderTimers(state, dt, audio) {
       state.orders[i] = spawnNextOrder(state);
     }
   }
-}
-
-export function serveBestOrder(state, audio, explicitPlate = null) {
-  if (!state.orders || state.orders.length === 0) return 0;
-  const plate = explicitPlate || state.chef.cookedDish;
-  if (!plate || !plate.prepared) {
-    state.feedbackBanner = { text: state.chef.holding ? 'NEEDS CHOP & COOK' : 'CARRY A COOKED DISH', tone: 'crimson', timer: 1.6 };
-    if (audio) audio.playScorchWarn();
-    return 0;
-  }
-
-  const matchIdx = state.orders.findIndex((o) => o.base === plate.base && o.stationPath === plate.stationPath);
-  if (matchIdx === -1) {
-    const baseIdx = state.orders.findIndex((o) => o.base === plate.base);
-    const salvage = baseIdx !== -1 ? Math.round(state.orders[baseIdx].price * 0.25) : 8;
-    state.feedbackBanner = { text: baseIdx !== -1 ? 'WRONG STATION' : 'WRONG DISH', tone: 'crimson', timer: 1.6 };
-    state.stations.wokRight.heatCombo = 1;
-    state.stations.wokRight.callout = 'WOK HEI x1 · SEAR!';
-    recordDishServe(state, salvage, 0);
-    state.chef.cookedDish = null;
-    if (baseIdx !== -1) state.orders[baseIdx] = spawnNextOrder(state);
-    if (audio) audio.playScorchWarn();
-    return salvage;
-  }
-
-  const served = state.orders[matchIdx];
-  if (served.vip && !plate.finished) {
-    state.feedbackBanner = { text: 'NEEDS FINISH [F]', tone: 'amber', timer: 1.6 };
-    if (audio) audio.playScorchWarn();
-    return 0;
-  }
-
-  const batch = consumeBatchPrepForDish(state, served);
-  const moodMult = getPatronTipMultiplier(served.patron?.mood || 'HAPPY', served.vip);
-  const baseTip = plate.glazeTip || Math.round((served.vip && state.upgrades.silk_pass ? 16 : 6) * moodMult);
-  const earned = served.price + baseTip + batch.bonusTip;
-  recordDishServe(state, served.price, baseTip + batch.bonusTip);
-  recordWokHeiBonus(state, state.stations.wokRight.heatCombo, 5);
-  recomputeLedger(state);
-  state.chef.cookedDish = null;
-  state.stations.pass.servedDisplay = plate;
-  state.stations.pass.servedTimer = 3.0;
-  state.feedbackBanner = { text: batch.consumed ? `SERVED +$${earned} (+$${batch.bonusTip} ${batch.label})` : `SERVED +$${earned}`, tone: 'jade', timer: 1.6 };
-  state.orders[matchIdx] = spawnNextOrder(state);
-  if (audio) audio.playBell();
-  return earned;
 }

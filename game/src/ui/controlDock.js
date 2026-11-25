@@ -1,19 +1,35 @@
 export const CONTROL_DOCK_ID = 'controlDock';
 
-import { THEME, FONT_UI, drawPlaque, registerHitbox } from './hudTheme.js';
+import { THEME, FONT_UI, drawPlaque, drawBrassPullBar, drawBrassDrawerButton, registerHitbox } from './hudTheme.js';
 import { drawSpeakerIcon, drawCheckIcon } from './vectorIcons.js';
 
 function getHoldDescriptor(chef) {
-  if (chef.cookedDish) {
-    return { text: `PLATED: ${chef.cookedDish.base.toUpperCase()}`, tone: 'jade', checked: true };
-  }
-  if (chef.holding && chef.prepped) {
-    return { text: `CHOPPED: ${String(chef.holding).toUpperCase()}`, tone: 'jade', checked: true };
-  }
-  if (chef.holding) {
-    return { text: `RAW: ${String(chef.holding).toUpperCase()}`, tone: 'gold', checked: false };
-  }
-  return { text: 'EMPTY HANDS', tone: 'paper', checked: false };
+  if (chef.cookedDish) return { text: `PLATED: ${chef.cookedDish.base.toUpperCase()}`, variant: 'jade', checked: true };
+  if (chef.holding && chef.prepped) return { text: `CHOPPED: ${String(chef.holding).toUpperCase()}`, variant: 'gold', checked: true };
+  if (chef.holding) return { text: `RAW: ${String(chef.holding).toUpperCase()}`, variant: 'gold', checked: false };
+  return { text: 'EMPTY HANDS', variant: 'lacquer', checked: false };
+}
+
+function drawGroupedModesChip(ctx, state, x, y, w, h) {
+  drawPlaque(ctx, x, y, w, h, '#4A0E0E', '#D49B35', 1.6, 6);
+  drawBrassPullBar(ctx, x + w / 2, y, 36);
+  const subs = [
+    { id: 'dock_route', key: 'R', lbl: 'ROUTE' },
+    { id: 'dock_pov', key: 'V', lbl: state.povMode === 'overhead' ? 'TOP' : '3/4' },
+    { id: 'dock_finish', key: 'F', lbl: 'FINISH' },
+  ];
+  const sw = Math.floor((w - 16) / 3);
+  ctx.save();
+  ctx.font = `800 9.5px ${FONT_UI}`;
+  subs.forEach((s, idx) => {
+    const sx = x + 5 + idx * (sw + 3);
+    drawPlaque(ctx, sx, y + 6, sw, h - 12, '#240707', '#D49B35', 1, 4);
+    ctx.fillStyle = '#FCD34D';
+    ctx.textAlign = 'center';
+    ctx.fillText(`[${s.key}] ${s.lbl}`, sx + sw / 2, y + h / 2 + 3.5, sw - 4);
+    registerHitbox(state, s.id, sx, y, sw, h);
+  });
+  ctx.restore();
 }
 
 export function drawControlDock(ctx, state, w, h) {
@@ -21,74 +37,43 @@ export function drawControlDock(ctx, state, w, h) {
 
   const compact = w < 1120;
   const dockH = 38;
-  const y = h - dockH - 8;
+  const y = h - dockH - 10;
   const gap = compact ? 8 : 10;
-  const px = compact ? 6 : 9;
   const hold = getHoldDescriptor(state.chef);
 
-  const pills = [
-    { id: 'dock_move', key: 'WASD/CLICK', label: 'MOVE', hit: false },
-    { id: 'dock_wok', key: 'E', label: 'ACT', hit: true },
-    { id: 'dock_serve', key: 'SPACE', label: 'SERVE', hit: true },
-    { id: 'dock_route', key: '1-3', label: 'ROUTE', hit: true },
-    { id: 'dock_pov', key: 'V', label: state.povMode === 'overhead' ? 'POV TOP' : 'POV 3/4', hit: true },
-    { id: 'dock_finish', key: 'F', label: 'FINISH', hit: true },
-    { id: 'dock_sfx', key: 'M', label: state.audioMuted ? 'SFX OFF' : 'SFX ON', hit: true, sfx: true },
-    { id: 'dock_hold', key: 'HOLD', label: hold.text, hit: false, hold },
+  // Integrated crimson-lacquer drawer rail
+  drawPlaque(ctx, 8, y - 4, w - 16, dockH + 10, '#2B0808', '#D49B35', 1.5, 8);
+
+  const slots = [
+    { kind: 'btn', id: 'dock_move', key: 'WASD/CLICK', label: 'MOVE', variant: 'lacquer', w: compact ? 156 : 172, hit: false },
+    { kind: 'btn', id: 'dock_wok', key: 'E/SPACE', label: 'ACT · SERVE', variant: 'action', w: compact ? 168 : 184, hit: true },
+    { kind: 'modes', w: compact ? 236 : 262 },
+    { kind: 'sfx', id: 'dock_sfx', key: 'M', label: state.audioMuted ? 'SFX OFF' : 'SFX ON', variant: 'jade', w: compact ? 116 : 126, hit: true },
+    { kind: 'hold', id: 'dock_hold', key: 'HOLD', label: hold.text, variant: hold.variant, w: compact ? 222 : 244, checked: hold.checked },
   ];
 
-  ctx.save();
-  ctx.font = `800 ${compact ? 10 : 11}px ${FONT_UI}`;
-
-  const measured = pills.map((p) => {
-    const keyW = ctx.measureText(p.key).width + (compact ? 10 : 12);
-    const extra = p.sfx ? 24 : p.hold && p.hold.checked ? 16 : 4;
-    const lblW = ctx.measureText(p.label).width + extra;
-    return { ...p, keyW, pw: Math.ceil(px * 2 + keyW + lblW + 6) };
-  });
-
-  const totalW = measured.reduce((acc, p) => acc + p.pw, 0) + gap * (measured.length - 1);
+  const totalW = slots.reduce((s, p) => s + p.w, 0) + gap * (slots.length - 1);
   let curX = Math.round((w - totalW) / 2);
   const bounds = [];
 
-  for (const p of measured) {
-    const isHold = Boolean(p.hold);
-    const fill = isHold
-      ? (p.hold.tone === 'jade' ? THEME.jadeSoft : p.hold.tone === 'gold' ? THEME.vipGold : THEME.ricePaperWarm)
-      : p.sfx && !state.audioMuted ? THEME.jadeSoft : THEME.lacquer;
-    const stroke = isHold
-      ? (p.hold.tone === 'jade' ? THEME.jade : THEME.brass)
-      : p.sfx && !state.audioMuted ? THEME.jade : THEME.brass;
-    drawPlaque(ctx, curX, y, p.pw, dockH, fill, stroke, 1.5, 7);
-
-    drawPlaque(ctx, curX + px, y + 7, p.keyW, 24, THEME.ricePaperWarm, THEME.brass, 1, 4);
-    ctx.fillStyle = THEME.ink;
-    ctx.textAlign = 'center';
-    ctx.fillText(p.key, curX + px + p.keyW / 2, y + 23);
-
-    const textX = curX + px + p.keyW + 7;
-    if (p.sfx) {
-      const iconCx = textX + 8;
-      drawSpeakerIcon(ctx, iconCx, y + 19, 13, state.audioMuted, state.audioMuted ? THEME.crimson : THEME.jade);
-      ctx.fillStyle = state.audioMuted ? THEME.crimson : THEME.jade;
-      ctx.textAlign = 'left';
-      ctx.fillText(p.label, iconCx + 13, y + 23);
-    } else if (isHold && p.hold.checked) {
-      drawCheckIcon(ctx, textX + 5, y + 19, 10, THEME.jade);
-      ctx.fillStyle = THEME.jade;
-      ctx.textAlign = 'left';
-      ctx.fillText(p.label, textX + 14, y + 23);
+  for (const sl of slots) {
+    if (sl.kind === 'modes') {
+      drawGroupedModesChip(ctx, state, curX, y, sl.w, dockH);
+    } else if (sl.kind === 'sfx') {
+      drawBrassDrawerButton(ctx, curX, y, sl.w, dockH, sl.key, sl.label, sl.variant, (c, ix, iy) =>
+        drawSpeakerIcon(c, ix, iy, 12, state.audioMuted, state.audioMuted ? '#B91C1C' : '#14532D'),
+      );
+      registerHitbox(state, sl.id, curX, y, sl.w, dockH);
+    } else if (sl.kind === 'hold') {
+      const iconFn = sl.checked ? (c, ix, iy) => drawCheckIcon(c, ix, iy, 10, '#15803D') : null;
+      drawBrassDrawerButton(ctx, curX, y, sl.w, dockH, sl.key, sl.label, sl.variant, iconFn);
     } else {
-      ctx.fillStyle = isHold ? THEME.ink : THEME.ricePaper;
-      ctx.textAlign = 'left';
-      ctx.fillText(p.label, textX, y + 23);
+      drawBrassDrawerButton(ctx, curX, y, sl.w, dockH, sl.key, sl.label, sl.variant);
+      if (sl.hit) registerHitbox(state, sl.id, curX, y, sl.w, dockH);
     }
-
-    if (p.hit) registerHitbox(state, p.id, curX, y, p.pw, dockH);
-    bounds.push({ id: p.id, x: curX, y, w: p.pw, h: dockH });
-    curX += p.pw + gap;
+    bounds.push({ id: sl.id || 'dock_modes', x: curX, y, w: sl.w, h: dockH });
+    curX += sl.w + gap;
   }
 
   state.hudBounds.dockPills = bounds;
-  ctx.restore();
 }

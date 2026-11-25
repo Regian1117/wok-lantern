@@ -1,8 +1,20 @@
 export const GAME_TITLE = 'Wok & Lantern';
 
+import './recipes/combinations.js';
+import './recipes/batchPrep.js';
+import './service/guestMoods.js';
+import './kitchen/routeGuide.js';
+import './shifts/upgrades.js';
+import { createKitchenSynth } from './audio/kitchenSynth.js';
+import './feel/choppingFeel.js';
+import './feel/wokTossFeel.js';
+import './recipes/finishingPass.js';
+import './service/orderBoard.js';
+import './service/scoringLedger.js';
+import './service/rushPacing.js';
+import './kitchen/stations.js';
 import { createGameState } from './core/state.js';
 import { stepSimulation } from './core/loop.js';
-import { createKitchenSynth } from './audio/kitchenSynth.js';
 import { createKeyboardInput } from './input/keyboard.js';
 import { attachPointerInput } from './input/pointerClickMove.js';
 import { createWorldRenderer } from './render3d/renderer.js';

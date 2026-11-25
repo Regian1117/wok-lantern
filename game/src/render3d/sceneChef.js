@@ -10,29 +10,32 @@ export function buildChefMesh(mats) {
   const leftLeg = makeMesh(root, legGeo, mats.indigoMat, [-0.12, 0.31, 0], null, null, true);
   const rightLeg = makeMesh(root, legGeo, mats.indigoMat, [0.12, 0.31, 0], null, null, true);
 
-  // Crimson Mandarin tunic + crisp ivory chef apron + 3 gold frog clasps
+  // Mandarin-collar crimson silk jacket + 3 gold frog clasps + crisp ivory apron
   makeMesh(root, new THREE.CylinderGeometry(0.24, 0.27, 0.68, 14), mats.tunicMat, [0, 0.94, 0], null, null, true);
-  makeMesh(root, new THREE.BoxGeometry(0.39, 0.58, 0.15), mats.ivoryApronMat, [0, 0.85, 0.18], null, null, true);
-  for (let i = 0; i < 3; i++) makeMesh(root, new THREE.BoxGeometry(0.09, 0.025, 0.03), mats.brassMat, [0, 1.18 - i * 0.1, 0.255]);
+  makeMesh(root, new THREE.CylinderGeometry(0.17, 0.18, 0.08, 14), mats.tunicMat, [0, 1.29, 0]);
+  makeMesh(root, new THREE.BoxGeometry(0.39, 0.56, 0.15), mats.ivoryApronMat, [0, 0.84, 0.18], null, null, true);
+  for (let i = 0; i < 3; i++) makeMesh(root, new THREE.BoxGeometry(0.09, 0.025, 0.03), mats.brassMat, [0, 1.19 - i * 0.1, 0.255]);
 
-  // Head + eyes/brows/catchlights/mustache + tall pleated chef toque with red band
-  makeMesh(root, new THREE.SphereGeometry(0.2, 16, 14), mats.skinMat, [0, 1.46, 0], null, null, true);
+  // Head + expressive eyes/brows/catchlights/mustache
+  makeMesh(root, new THREE.SphereGeometry(0.2, 16, 14), mats.skinMat, [0, 1.47, 0], null, null, true);
   const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const cheekMat = new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.65 });
   for (const ex of [-0.07, 0.07]) {
-    makeMesh(root, new THREE.SphereGeometry(0.025, 8, 8), mats.hairMat, [ex, 1.47, 0.185]);
-    makeMesh(root, new THREE.SphereGeometry(0.009, 6, 6), eyeWhiteMat, [ex + 0.008, 1.478, 0.205]);
-    makeMesh(root, new THREE.BoxGeometry(0.06, 0.015, 0.02), mats.hairMat, [ex, 1.525, 0.185]);
-    makeMesh(root, new THREE.SphereGeometry(0.028, 8, 8), cheekMat, [ex * 1.45, 1.425, 0.175], null, [1, 0.6, 0.5]);
-    makeMesh(root, new THREE.BoxGeometry(0.06, 0.018, 0.02), mats.hairMat, [ex * 0.5, 1.405, 0.195], [0, 0, ex < 0 ? 0.2 : -0.2]);
+    makeMesh(root, new THREE.SphereGeometry(0.025, 8, 8), mats.hairMat, [ex, 1.48, 0.185]);
+    makeMesh(root, new THREE.SphereGeometry(0.009, 6, 6), eyeWhiteMat, [ex + 0.008, 1.488, 0.205]);
+    makeMesh(root, new THREE.BoxGeometry(0.06, 0.015, 0.02), mats.hairMat, [ex, 1.535, 0.185]);
+    makeMesh(root, new THREE.SphereGeometry(0.028, 8, 8), cheekMat, [ex * 1.45, 1.435, 0.175], null, [1, 0.6, 0.5]);
+    makeMesh(root, new THREE.BoxGeometry(0.06, 0.018, 0.02), mats.hairMat, [ex * 0.5, 1.415, 0.195], [0, 0, ex < 0 ? 0.2 : -0.2]);
   }
 
-  // Tall pleated chef toque + red band + ribbon tails
-  makeMesh(root, new THREE.CylinderGeometry(0.21, 0.2, 0.16, 16), mats.ivoryApronMat, [0, 1.65, 0]);
-  makeMesh(root, new THREE.SphereGeometry(0.24, 14, 10), mats.ivoryApronMat, [0, 1.81, 0], null, [1, 0.85, 1]);
-  makeMesh(root, new THREE.TorusGeometry(0.208, 0.03, 8, 22), mats.crimsonVelvetMat, [0, 1.57, 0], [Math.PI / 2, 0, 0]);
-  makeMesh(root, new THREE.BoxGeometry(0.04, 0.2, 0.015), mats.crimsonVelvetMat, [-0.05, 1.45, -0.22], [0, 0, 0.25]);
-  makeMesh(root, new THREE.BoxGeometry(0.04, 0.2, 0.015), mats.brassMat, [0.05, 1.45, -0.22], [0, 0, -0.25]);
+  // Sleek dark sculpted hair + top-knot + knotted crimson-and-gold hachimaki with trailing ties
+  makeMesh(root, new THREE.SphereGeometry(0.212, 14, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), mats.hairMat, [0, 1.49, -0.01]);
+  makeMesh(root, new THREE.SphereGeometry(0.088, 10, 10), mats.hairMat, [0, 1.72, -0.03]);
+  makeMesh(root, new THREE.TorusGeometry(0.208, 0.034, 8, 22), mats.crimsonVelvetMat, [0, 1.56, 0], [Math.PI / 2, 0, 0]);
+  makeMesh(root, new THREE.TorusGeometry(0.212, 0.012, 6, 22), mats.brassMat, [0, 1.56, 0], [Math.PI / 2, 0, 0]);
+  makeMesh(root, new THREE.SphereGeometry(0.044, 8, 8), mats.brassMat, [0, 1.56, -0.22]);
+  makeMesh(root, new THREE.BoxGeometry(0.045, 0.24, 0.016), mats.crimsonVelvetMat, [-0.055, 1.43, -0.24], [0.22, 0, 0.24]);
+  makeMesh(root, new THREE.BoxGeometry(0.045, 0.24, 0.016), mats.brassMat, [0.055, 1.43, -0.24], [0.22, 0, -0.24]);
 
   // Left arm + dynamic held tray (raw/chopped/plated visibility)
   const leftArm = new THREE.Group();
@@ -45,7 +48,6 @@ export function buildChefMesh(mats) {
   makeMesh(platedCarry, new THREE.SphereGeometry(0.1, 10, 8), mats.duckMat, [0, 0.05, 0], null, [1.2, 0.55, 1]);
   root.add(leftArm);
 
-  // Right arm gripping brass wok ladle
   const rightArm = new THREE.Group();
   rightArm.position.set(0.3, 1.15, 0.06);
   makeMesh(rightArm, new THREE.CylinderGeometry(0.075, 0.07, 0.44, 10), mats.tunicMat, [0, -0.16, 0.12], [Math.PI * 0.3, 0, 0]);

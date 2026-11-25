@@ -1,3 +1,10 @@
+export function recordDishServe(state, dishPrice, tipAmount = 0) {
+  const l = state.ledger;
+  l.dishesServed += 1;
+  l.basePay += Math.max(0, Math.round(dishPrice + tipAmount));
+  return recomputeLedger(state);
+}
+
 export const LEDGER_VERSION = 1;
 
 export function calculateStarRating(netPay, targetPay = 450) {
@@ -18,13 +25,6 @@ export function recomputeLedger(state) {
   l.avgPrice = l.dishesServed > 0 ? Math.round(l.basePay / l.dishesServed) : 50;
   l.stars = calculateStarRating(l.netPay, 450);
   return l;
-}
-
-export function recordDishServe(state, dishPrice, tipAmount = 0) {
-  const l = state.ledger;
-  l.dishesServed += 1;
-  l.basePay += Math.max(0, Math.round(dishPrice + tipAmount));
-  return recomputeLedger(state);
 }
 
 export function recordWokHeiBonus(state, comboLevel, baseBonus = 5) {
@@ -52,7 +52,7 @@ export function recordLateOrderPenalty(state, amount = 15) {
 
 export function formatLedgerStrip(ledger) {
   const extraLate = ledger.latePenaltyTotal > 0 ? ` − $${ledger.latePenaltyTotal} LATE` : '';
-  return `$${ledger.basePay} + $${ledger.heiBonus} HEI − $${ledger.scorchPenalty} SCORCH${extraLate} = $${ledger.netPay}`;
+  return `$${ledger.basePay} + $${ledger.heiBonus} WOK HEI − $${ledger.scorchPenalty} SCORCH${extraLate} = $${ledger.netPay}`;
 }
 
 export function buildShiftSummaryRows(ledger) {

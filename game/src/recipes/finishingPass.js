@@ -1,8 +1,3 @@
-export const FINISHING_PASS_ID = 'finishingPass';
-
-import { serveBestOrder } from '../service/orderBoard.js';
-import { recordDishServe } from '../service/scoringLedger.js';
-
 export function enterFinishingPass(state) {
   state.mode = 'finish';
   const tipBonus = state.upgrades.silk_pass ? 20 : 16;
@@ -21,6 +16,11 @@ export function enterFinishingPass(state) {
     ],
   };
 }
+
+import { serveBestOrder } from '../service/orderBoard.js';
+import { recordDishServe } from '../service/scoringLedger.js';
+
+export const FINISHING_PASS_ID = 'finishingPass';
 
 export function applyFinishingSauce(state, sauceId, audio) {
   const fin = state.finishing;
@@ -51,9 +51,7 @@ export function completeFinishingPass(state, audio) {
     glazeTip: fin.tipBonus,
   };
   let earned = 0;
-  const hasVipOrder = (state.orders || []).some(
-    (o) => o.base === 'Duck' && o.stationPath === 'Island Carve',
-  );
+  const hasVipOrder = (state.orders || []).some((o) => o.base === 'Duck' && o.stationPath === 'Island Carve');
   if (hasVipOrder) {
     earned = serveBestOrder(state, audio, plate);
   } else {

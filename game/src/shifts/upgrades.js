@@ -1,3 +1,10 @@
+export function toggleUpgrade(state, upgradeId, audio) {
+  if (!Object.hasOwn(state.upgrades, upgradeId)) return false;
+  state.upgrades[upgradeId] = !state.upgrades[upgradeId];
+  if (audio) audio.playPickup();
+  return state.upgrades[upgradeId];
+}
+
 export const KITCHEN_UPGRADES = [
   {
     id: 'jet_wok',
@@ -46,11 +53,4 @@ export function getUpgradeMultipliers(state) {
 export function getUnlockedUpgradeSummary(state) {
   const flags = (state && state.upgrades) || {};
   return KITCHEN_UPGRADES.filter((u) => Boolean(flags[u.id])).map((u) => u.fullName);
-}
-
-export function toggleUpgrade(state, upgradeId, audio) {
-  if (!Object.hasOwn(state.upgrades, upgradeId)) return false;
-  state.upgrades[upgradeId] = !state.upgrades[upgradeId];
-  if (audio) audio.playPickup();
-  return state.upgrades[upgradeId];
 }

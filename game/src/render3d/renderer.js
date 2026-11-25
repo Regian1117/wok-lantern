@@ -102,6 +102,8 @@ export function createWorldRenderer(glCanvas) {
     const isFinish = state.mode === 'finish';
     kitchenGroup.visible = !isFinish;
     finishHall.group.visible = isFinish;
+    lights.keyDir.intensity = isFinish ? 3.05 : 2.25;
+    renderer.toneMappingExposure = isFinish ? 1.24 : 1.15;
     applyCameraForMode(state);
 
     if (!isFinish) {
@@ -152,6 +154,11 @@ export function createWorldRenderer(glCanvas) {
     } else {
       finishHall.pourGrp.position.x = Math.sin(state.time * 3.0) * 0.04;
       finishHall.drizzleRing.scale.setScalar(1 + Math.sin(state.time * 4) * 0.03);
+      if (finishHall.steamWisps) {
+        finishHall.steamWisps.forEach((w, idx) => {
+          w.position.y = 1.38 + ((state.time * 0.35 + idx * 0.25) % 0.42);
+        });
+      }
     }
 
     renderer.render(scene, camera);

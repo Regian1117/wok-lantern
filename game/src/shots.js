@@ -9,7 +9,8 @@ function applyHeroShowcaseData(state) {
   state.chef.holding = 'dumplings';
   state.chef.prepped = true;
   state.batchPrep = { chili: 2, bokchoy: 0, prepStreak: 2, totalBatches: 2 };
-  state.nextCrateIds = ['crate_chili', 'crate_prawn'];
+  state.nextCrateIds = ['crate_prawn'];
+  state.batchCrateId = 'crate_chili';
   state.stations.chop = { flashTimer: 0.85, hitstop: 0, lastLabel: 'CHOP! PERFECT', choppedItem: 'scallion' };
   state.stations.wokLeft = { scorched: true, active: true, stage: 'scorched', heat: 1.0, timer: 0, item: 'chili' };
   state.stations.wokRight = { active: true, item: 'noodles', progress: 0.72, sweetPhase: 0.5, sweetCenter: 0.5, sweetWidth: 0.22, heatCombo: 6, flashTimer: 0.8, callout: 'WOK HEI x6 · SEAR!' };

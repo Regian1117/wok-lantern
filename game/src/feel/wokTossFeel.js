@@ -1,8 +1,3 @@
-export const WOK_SWEET_CENTER = 0.5;
-
-import { spawnFlame, spawnSparks } from './particles.js';
-import { recomputeLedger, recordScorchPenalty } from '../service/scoringLedger.js';
-
 export function triggerWokToss(state, stationId, audio) {
   state.chef.wokAnim = 1.0;
   if (stationId === 'wok_left') {
@@ -38,6 +33,11 @@ export function triggerWokToss(state, stationId, audio) {
   if (audio) audio.playWokSear(wr.heatCombo);
   return inSweet;
 }
+
+import { spawnFlame, spawnSparks } from './particles.js';
+import { recomputeLedger, recordScorchPenalty } from '../service/scoringLedger.js';
+
+export const WOK_SWEET_CENTER = 0.5;
 
 export function stepWokFeel(state, dt, audio) {
   if (state.chef.wokAnim > 0) state.chef.wokAnim = Math.max(0, state.chef.wokAnim - dt * 2.8);

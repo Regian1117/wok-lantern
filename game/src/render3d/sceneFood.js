@@ -30,14 +30,20 @@ function populateCrate(grp, kind, mats) {
   }
 }
 
-export function buildPekingDuckPlatter(mats, scale = 1) {
+export function buildPekingDuckPlatter(mats, scale = 1, midAssembly = false) {
   const g = new THREE.Group();
   makeMesh(g, cylG(0.45, 0.4, 0.055, 8), mats.tunicMat, null, null, null, true);
   makeMesh(g, torG(0.43, 0.018, 8, 8), mats.brassMat, [0, 0.032, 0], [Math.PI / 2, 0, Math.PI / 8]);
   makeMesh(g, cylG(0.38, 0.38, 0.014, 8), mats.ceramicMat, [0, 0.028, 0]);
-  for (let i = 0; i < 8; i++) makeMesh(g, boxG(0.14, 0.036, 0.058), mats.duckMat, [-0.18 + (i % 4) * 0.1, 0.054, -0.09 + Math.floor(i / 4) * 0.085], [0, 0.22, 0]);
-  for (let d = 0; d < 6; d++) makeMesh(g, cylG(0.038, 0.038, 0.016, 10), mats.bokChoyMat, [-0.26 + d * 0.052, 0.048, 0.12 + (d % 2) * 0.045]);
-  for (let c = 0; c < 3; c++) makeMesh(g, cylG(0.11, 0.11, 0.014, 12), mats.dumplingMat, [0.17, 0.042 + c * 0.015, 0.14]);
+  const cols = midAssembly ? 2 : 4;
+  for (let i = 0; i < cols * 2; i++) {
+    makeMesh(g, boxG(0.14, 0.036, 0.058), mats.duckMat, [-0.18 + (i % cols) * 0.1, 0.054, -0.09 + Math.floor(i / cols) * 0.085], [0, 0.22, 0]);
+  }
+  if (midAssembly) {
+    makeMesh(g, torG(0.085, 0.012, 6, 16), mats.brassMat, [0.12, 0.04, -0.05], [Math.PI / 2, 0, 0]);
+  }
+  for (let d = 0; d < (midAssembly ? 4 : 6); d++) makeMesh(g, cylG(0.038, 0.038, 0.016, 10), mats.bokChoyMat, [-0.26 + d * 0.052, 0.048, 0.12 + (d % 2) * 0.045]);
+  for (let c = 0; c < (midAssembly ? 2 : 3); c++) makeMesh(g, cylG(0.11, 0.11, 0.014, 12), mats.dumplingMat, [0.17, 0.042 + c * 0.015, 0.14]);
   makeMesh(g, cylG(0.07, 0.06, 0.05, 12), mats.ceramicMat, [-0.16, 0.055, 0.2]);
   makeMesh(g, cylG(0.055, 0.055, 0.012, 12), mats.glazeMat, [-0.16, 0.082, 0.2]);
   g.scale.setScalar(scale);
@@ -109,7 +115,7 @@ export function buildKitchenFood(mats) {
   makeMesh(group, new THREE.ConeGeometry(0.18, 0.25, 10), new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 }), [-1.75, 0.86, -3.15]);
   const emberRing = makeMesh(group, torG(0.24, 0.04, 8, 16), new THREE.MeshBasicMaterial({ color: 0xef4444 }), [-3.05, 0.98, -3.15], [Math.PI / 2, 0, 0]);
 
-  const islandPlate = buildPekingDuckPlatter(mats, 1.24);
+  const islandPlate = buildPekingDuckPlatter(mats, 1.24, true);
   islandPlate.position.set(0.38, 0.99, 0.12);
   group.add(islandPlate);
 

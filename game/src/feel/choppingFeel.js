@@ -1,32 +1,3 @@
-export const CHOP_FLASH_DURATION = 0.65;
-
-import { spawnSparks } from './particles.js';
-import { isSharedBatchItem, stockBatchPrep, getBatchSummaryLabel } from '../recipes/batchPrep.js';
-
-export function evaluateChopWindow(chopMeter = 0.5) {
-  const dist = Math.abs((Number(chopMeter) || 0) - 0.5);
-  if (dist <= 0.14) return { grade: 'PERFECT', label: 'CHOP! PERFECT', bonus: 6 };
-  if (dist <= 0.28) return { grade: 'GOOD', label: 'CHOP! GOOD', bonus: 3 };
-  return { grade: 'ROUGH', label: 'CHOP! ROUGH', bonus: 0 };
-}
-
-export function stepChopMeter(state, dt) {
-  if (state.shotMode) return;
-  let next = (state.chopMeter ?? 0.5) + (state.chopDir ?? 1) * 1.45 * dt;
-  if (next >= 1) {
-    next = 1;
-    state.chopDir = -1;
-  } else if (next <= 0) {
-    next = 0;
-    state.chopDir = 1;
-  }
-  state.chopMeter = next;
-}
-
-export function emitChopBurst(state) {
-  spawnSparks(state, -4.65, 1.12, 0.85, 8);
-}
-
 export function triggerChopFeel(state, audio) {
   if (!state.chef.holding) {
     state.feedbackBanner = { text: 'NEED INGREDIENT', tone: 'crimson', timer: 1.4 };
@@ -61,6 +32,35 @@ export function triggerChopFeel(state, audio) {
   emitChopBurst(state);
   if (audio) audio.playChop();
   return evalRes;
+}
+
+import { spawnSparks } from './particles.js';
+import { isSharedBatchItem, stockBatchPrep, getBatchSummaryLabel } from '../recipes/batchPrep.js';
+
+export const CHOP_FLASH_DURATION = 0.65;
+
+export function evaluateChopWindow(chopMeter = 0.5) {
+  const dist = Math.abs((Number(chopMeter) || 0) - 0.5);
+  if (dist <= 0.14) return { grade: 'PERFECT', label: 'CHOP! PERFECT', bonus: 6 };
+  if (dist <= 0.28) return { grade: 'GOOD', label: 'CHOP! GOOD', bonus: 3 };
+  return { grade: 'ROUGH', label: 'CHOP! ROUGH', bonus: 0 };
+}
+
+export function stepChopMeter(state, dt) {
+  if (state.shotMode) return;
+  let next = (state.chopMeter ?? 0.5) + (state.chopDir ?? 1) * 1.45 * dt;
+  if (next >= 1) {
+    next = 1;
+    state.chopDir = -1;
+  } else if (next <= 0) {
+    next = 0;
+    state.chopDir = 1;
+  }
+  state.chopMeter = next;
+}
+
+export function emitChopBurst(state) {
+  spawnSparks(state, -4.65, 1.12, 0.85, 8);
 }
 
 export function getChopRingPulse(state) {

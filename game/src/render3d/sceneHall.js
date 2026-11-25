@@ -86,9 +86,15 @@ export function buildFinishHallScene(mats) {
   group.visible = false;
   addDiningHallBackdrop(group, mats);
 
-  const hallLight = new THREE.PointLight(0xffb86c, 3.2, 14);
-  hallLight.position.set(0.2, 2.9, 0.5);
+  const hallLight = new THREE.PointLight(0xffe0b2, 4.4, 15);
+  hallLight.position.set(0.2, 2.9, 0.8);
   group.add(hallLight);
+
+  const steamMat = new THREE.MeshBasicMaterial({ color: 0xfffbeb, transparent: true, opacity: 0.42 });
+  const steamWisps = [];
+  for (const [sx, sy, sz] of [[-1.12, 1.42, 0.22], [-1.05, 1.56, 0.18], [-0.08, 1.44, 0.12], [0.95, 1.38, -0.18]]) {
+    steamWisps.push(makeMesh(group, sphG(0.085, 8, 6), steamMat, [sx, sy, sz], null, [1, 1.35, 1]));
+  }
 
   makeMesh(group, boxG(5.6, 0.94, 2.4), mats.marbleMat, [0, 0.47, 0.1], null, null, true);
   makeMesh(group, boxG(5.64, 0.055, 0.08), mats.brassMat, [0, 0.9, 1.32]);
@@ -115,5 +121,5 @@ export function buildFinishHallScene(mats) {
   makeMesh(group, cylG(0.16, 0.18, 0.045, 18), mats.darkIronMat, [0.76, 0.96, 0.44]);
   makeMesh(group, new THREE.SphereGeometry(0.13, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), mats.brassMat, [0.76, 0.98, 0.44]);
 
-  return { group, pourGrp, bottleGrp, stream, drizzleRing };
+  return { group, pourGrp, bottleGrp, stream, drizzleRing, steamWisps };
 }
