@@ -107,7 +107,7 @@ export function createWorldRenderer(glCanvas) {
         wm.position.y = 0.985 + Math.sin(state.time * 4) * 0.004;
       }
       food.flameCone.scale.set(1, 0.85 + Math.sin(state.time * 16) * 0.25, 1);
-      food.emberRing.visible = state.stations.wokLeft.scorched;
+      food.emberRing.visible = state.stations.wokLeft.stage !== 'cool';
       lights.wokFlameLight.intensity = 2.2 + Math.sin(state.time * 14) * 0.6;
 
       for (let i = 0; i < particlePool.length; i++) {

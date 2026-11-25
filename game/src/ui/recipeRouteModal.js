@@ -22,20 +22,23 @@ export function drawRecipeRouteModal(ctx, state, w, h) {
 
   drawPlaque(ctx, mx, my, modalW, modalH, THEME.ricePaper, THEME.brass, 2.4, 10);
 
-  // Bold 20px Georgia header
+  // Extra-bold geometric sans header for 245x152 thumbnail legibility
   ctx.fillStyle = THEME.lacquer;
-  ctx.fillRect(mx + 2, my + 2, modalW - 4, 48);
+  ctx.fillRect(mx + 2, my + 2, modalW - 4, 54);
+  ctx.save();
   ctx.fillStyle = THEME.brassBright;
-  ctx.font = `bold ${compact ? 19 : 21}px ${FONT_SERIF}`;
+  ctx.font = `900 ${compact ? 24 : 27}px ${FONT_UI}`;
   ctx.textAlign = 'left';
-  ctx.fillText('12 DISHES · 3 SHIFTS', mx + 16, my + 33);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '1.2px';
+  ctx.fillText('12 DISHES · 3 SHIFTS', mx + 16, my + 38);
+  ctx.restore();
 
-  drawPlaque(ctx, mx + modalW - 88, my + 11, 74, 30, THEME.ricePaperWarm, THEME.brass, 1.4, 6);
+  drawPlaque(ctx, mx + modalW - 88, my + 14, 74, 30, THEME.ricePaperWarm, THEME.brass, 1.4, 6);
   ctx.fillStyle = THEME.ink;
   ctx.font = `bold 12px ${FONT_UI}`;
   ctx.textAlign = 'center';
-  ctx.fillText('CLOSE', mx + modalW - 51, my + 30);
-  registerHitbox(state, 'route_close', mx + modalW - 88, my + 11, 74, 30);
+  ctx.fillText('CLOSE', mx + modalW - 51, my + 33);
+  registerHitbox(state, 'route_close', mx + modalW - 88, my + 14, 74, 30);
 
   // 3 Shift progression pills
   const shifts = [
@@ -44,7 +47,7 @@ export function drawRecipeRouteModal(ctx, state, w, h) {
     { idx: 2, label: 'SHIFT 3 · BANQUET NEXT', active: state.shiftIndex === 2 },
   ];
   const sw = Math.floor((modalW - 40) / 3);
-  const sy = my + 60;
+  const sy = my + 66;
   shifts.forEach((sh, i) => {
     const sx = mx + 14 + i * (sw + 6);
     const active = state.shiftIndex === sh.idx;

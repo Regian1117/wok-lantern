@@ -48,6 +48,33 @@ function drawWokCalloutPill(ctx, x, y, wr) {
   ctx.restore();
 }
 
+function drawChopMeterPill(ctx, x, y, label, chopMeter) {
+  ctx.save();
+  ctx.font = `bold 11px ${FONT_UI}`;
+  const pw = Math.max(126, Math.ceil(ctx.measureText(label).width + 20));
+  const ph = 38;
+  const rx = Math.round(x - pw / 2);
+  const ry = Math.round(y - ph / 2);
+  drawPlaque(ctx, rx, ry, pw, ph, THEME.vipGold, THEME.brass, 1.7, 7);
+
+  ctx.fillStyle = THEME.ink;
+  ctx.textAlign = 'center';
+  ctx.fillText(label, x, ry + 15);
+
+  const barX = rx + 12;
+  const barY = ry + 24;
+  const barW = pw - 24;
+  const barH = 7;
+  ctx.fillStyle = '#3B1E18';
+  ctx.fillRect(barX, barY, barW, barH);
+  ctx.fillStyle = '#22C55E';
+  ctx.fillRect(barX + barW * 0.36, barY, barW * 0.28, barH);
+  const needleX = barX + Math.max(2, Math.min(barW - 5, chopMeter * barW - 2));
+  ctx.fillStyle = THEME.brassBright;
+  ctx.fillRect(needleX, barY - 1, 5, barH + 2);
+  ctx.restore();
+}
+
 function drawRadialGauge(ctx, x, y, progress, label) {
   ctx.save();
   drawPlaque(ctx, x - 64, y - 22, 148, 44, THEME.ricePaper, THEME.brass, 1.5, 8);
@@ -124,19 +151,24 @@ export function drawStationCallouts(ctx, state, rendererApi, w, h) {
   const wy = Math.max(146, pw.y);
   drawWokCalloutPill(ctx, pw.x + 34, wy, wr);
 
-  // Butcher stump chop flash
-  if (state.stations.chop.flashTimer > 0) {
-    const cp = rendererApi.projectWorldToScreen(-4.65, 1.55, 0.85, w, h);
-    drawWorldPill(
+  // Butcher stump chop sweet-spot meter pill + needle
+  const cp = rendererApi.projectWorldToScreen(-4.65, 1.65, 0.85, w, h);
+  if (state.stations.chop.flashTimer > 0 || state.chef.holding) {
+    drawChopMeterPill(
       ctx,
-      Math.max(95, cp.x),
-      Math.max(144, cp.y),
+      Math.max(96, cp.x),
+      Math.max(146, cp.y),
       state.stations.chop.lastLabel,
-      THEME.vipGold,
-      THEME.brass,
-      THEME.ink,
-      11,
+      state.chopMeter ?? 0.52,
     );
+  }
+
+  // Live action feedback banner
+  if (state.feedbackBanner && state.feedbackBanner.timer > 0) {
+    const fb = state.feedbackBanner;
+    const fill = fb.tone === 'crimson' ? THEME.crimsonSoft : fb.tone === 'amber' ? THEME.vipGold : THEME.jadeSoft;
+    const stroke = fb.tone === 'crimson' ? THEME.crimson : fb.tone === 'amber' ? THEME.brass : THEME.jade;
+    drawWorldPill(ctx, w * 0.5, 112, fb.text, fill, stroke, stroke, 12);
   }
 
   // Center island unified radial progress gauge

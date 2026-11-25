@@ -1,23 +1,37 @@
 export const ORDER_BOARD_MAX = 4;
 
-import { HERO_RECIPES } from '../recipes/catalog.js';
+import { TWELVE_COMBINATIONS } from '../recipes/combinations.js';
 import { rngPick } from '../core/rng.js';
-import { recomputeLedger } from './scoringLedger.js';
+import { recomputeLedger, recordDishServe, recordWokHeiBonus } from './scoringLedger.js';
+import { applyLateOrderPenalty } from './rushPacing.js';
 
-const RECIPE_LIST = Object.values(HERO_RECIPES);
+const BASE_TO_ING = {
+  Noodles: 'Noodles',
+  Dumplings: 'Dumplings',
+  Duck: 'Duck',
+  Prawn: 'Prawn',
+};
 
 export function spawnNextOrder(state) {
-  const pick = rngPick(state.rng, RECIPE_LIST) || HERO_RECIPES.char_kway_teow;
+  const unlockedBases =
+    state.shiftIndex === 0 ? ['Noodles', 'Dumplings', 'Prawn'] : ['Noodles', 'Dumplings', 'Duck', 'Prawn'];
+  const pool = TWELVE_COMBINATIONS.filter((c) => unlockedBases.includes(c.base));
+  const pick = rngPick(state.rng, pool) || TWELVE_COMBINATIONS[0];
+  const isVip = pick.id === 'vip_peking_duck' || pick.price >= 68;
+  const maxTime = isVip ? 44 : 32;
   return {
     id: `ord_${Math.floor(state.time * 100)}_${Math.floor(state.rng() * 999)}`,
     recipeId: pick.id,
-    title: pick.title,
+    title: pick.title.toUpperCase(),
+    base: pick.base,
+    stationPath: pick.path,
+    sauce: pick.sauce,
     price: pick.price,
-    stepLabel: pick.stepLabel,
-    nextIng: pick.nextIng,
-    timeLeft: pick.vip ? 46 : 34,
-    maxTime: pick.vip ? 46 : 34,
-    vip: pick.vip,
+    stepLabel: `${pick.path}: ${pick.base}`,
+    nextIng: BASE_TO_ING[pick.base] || pick.base,
+    timeLeft: maxTime,
+    maxTime,
+    vip: isVip,
     urgent: false,
   };
 }
@@ -27,34 +41,67 @@ export function stepOrderTimers(state, dt, audio) {
     const ord = state.orders[i];
     ord.timeLeft = Math.max(0, ord.timeLeft - dt);
     ord.urgent = ord.timeLeft <= 10;
-    if (ord.urgent && ord.recipeId === 'chili_prawn') {
+    if (ord.urgent) {
       const sec = Math.ceil(ord.timeLeft);
-      ord.stepLabel = `Next: Prawn (0:${String(sec).padStart(2, '0')})`;
+      ord.stepLabel = `Next: ${ord.nextIng} (0:${String(sec).padStart(2, '0')})`;
     }
     if (ord.timeLeft <= 0) {
-      state.ledger.scorchCount += 1;
-      state.ledger.scorchPenalty += 20;
-      recomputeLedger(state);
-      if (audio) audio.playScorchWarn();
+      applyLateOrderPenalty(state, audio);
       state.orders[i] = spawnNextOrder(state);
     }
   }
 }
 
-export function serveBestOrder(state, audio) {
+export function serveBestOrder(state, audio, explicitPlate = null) {
   if (!state.orders || state.orders.length === 0) return 0;
-  let bestIdx = 0;
-  for (let i = 1; i < state.orders.length; i++) {
-    if (state.orders[i].timeLeft < state.orders[bestIdx].timeLeft) bestIdx = i;
+  const plate = explicitPlate || state.chef.cookedDish || state.stations.pass.platedDish;
+  if (!plate || !plate.prepared) {
+    state.feedbackBanner = { text: 'NEEDS CHOP', tone: 'crimson', timer: 1.6 };
+    if (audio) audio.playScorchWarn();
+    return 0;
   }
-  const served = state.orders[bestIdx];
-  const tip = served.vip && state.upgrades.silk_pass ? 16 : 6;
-  const earned = served.price + tip;
-  state.ledger.dishesServed += 1;
-  state.ledger.basePay += earned;
-  state.ledger.heiBonus += state.stations.wokRight.heatCombo * 5;
+
+  let matchIdx = state.orders.findIndex(
+    (o) => o.base === plate.base && o.stationPath === plate.stationPath,
+  );
+  if (matchIdx === -1) {
+    const baseIdx = state.orders.findIndex((o) => o.base === plate.base);
+    if (baseIdx !== -1) {
+      const salvage = Math.round(state.orders[baseIdx].price * 0.25);
+      state.feedbackBanner = { text: 'WRONG STATION', tone: 'crimson', timer: 1.6 };
+      state.stations.wokRight.heatCombo = 1;
+      state.stations.wokRight.callout = 'WOK HEI x1 · SEAR!';
+      recordDishServe(state, salvage, 0);
+      state.chef.cookedDish = null;
+      state.stations.pass.platedDish = null;
+      state.orders[baseIdx] = spawnNextOrder(state);
+      if (audio) audio.playScorchWarn();
+      return salvage;
+    }
+    state.feedbackBanner = { text: 'WRONG DISH', tone: 'crimson', timer: 1.6 };
+    recordDishServe(state, 8, 0);
+    state.chef.cookedDish = null;
+    state.stations.pass.platedDish = null;
+    if (audio) audio.playScorchWarn();
+    return 8;
+  }
+
+  const served = state.orders[matchIdx];
+  if (served.vip && !plate.finished) {
+    state.feedbackBanner = { text: 'NEEDS FINISH', tone: 'amber', timer: 1.6 };
+    if (audio) audio.playScorchWarn();
+    return 0;
+  }
+
+  const glazeTip = plate.glazeTip || (served.vip && state.upgrades.silk_pass ? 16 : 6);
+  const earned = served.price + glazeTip;
+  recordDishServe(state, served.price, glazeTip);
+  recordWokHeiBonus(state, state.stations.wokRight.heatCombo, 5);
   recomputeLedger(state);
-  state.orders[bestIdx] = spawnNextOrder(state);
+  state.chef.cookedDish = null;
+  state.stations.pass.platedDish = null;
+  state.feedbackBanner = { text: `SERVED +$${earned}`, tone: 'jade', timer: 1.4 };
+  state.orders[matchIdx] = spawnNextOrder(state);
   if (audio) audio.playBell();
   return earned;
 }

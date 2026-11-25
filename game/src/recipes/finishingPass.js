@@ -1,6 +1,7 @@
 export const FINISHING_PASS_ID = 'finishingPass';
 
-import { recomputeLedger } from '../service/scoringLedger.js';
+import { serveBestOrder } from '../service/orderBoard.js';
+import { recordDishServe } from '../service/scoringLedger.js';
 
 export function enterFinishingPass(state) {
   state.mode = 'finish';
@@ -40,14 +41,29 @@ export function applyFinishingSauce(state, sauceId, audio) {
 
 export function completeFinishingPass(state, audio) {
   const fin = state.finishing;
-  const totalDishPay = fin.price + fin.tipBonus;
-  state.ledger.dishesServed += 1;
-  state.ledger.basePay += totalDishPay;
-  recomputeLedger(state);
+  const plate = {
+    recipeId: 'vip_peking_duck',
+    base: 'Duck',
+    stationPath: 'Island Carve',
+    sauce: 'Plum Glaze',
+    prepared: true,
+    finished: true,
+    glazeTip: fin.tipBonus,
+  };
+  let earned = 0;
+  const hasVipOrder = (state.orders || []).some(
+    (o) => o.base === 'Duck' && o.stationPath === 'Island Carve',
+  );
+  if (hasVipOrder) {
+    earned = serveBestOrder(state, audio, plate);
+  } else {
+    earned = fin.price + fin.tipBonus;
+    recordDishServe(state, fin.price, fin.tipBonus);
+    if (audio) audio.playBell();
+  }
   state.stations.island.step = 1;
   state.stations.island.progress = 1 / 3;
   state.stations.island.label = 'PEKING DUCK · 1/3';
   state.mode = 'kitchen';
-  if (audio) audio.playBell();
-  return totalDishPay;
+  return earned;
 }

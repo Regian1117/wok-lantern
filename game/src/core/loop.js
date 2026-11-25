@@ -103,12 +103,13 @@ export function stepSimulation(state, rawDt, input, audio) {
   }
 
   stepChopFeel(state, dt);
-  stepWokFeel(state, dt);
+  stepWokFeel(state, dt, audio);
   computeActiveRoute(state);
 
   if (state.rng() < dt * 8) spawnSteam(state, -0.45, 1.45, -3.15);
   if (state.rng() < dt * 10) spawnFlame(state, -1.75, 1.05, -3.15);
-  if (state.stations.wokLeft.scorched && state.rng() < dt * 9) {
+  const wlStage = state.stations.wokLeft.stage;
+  if ((wlStage === 'smoke' || wlStage === 'scorched') && state.rng() < dt * 9) {
     spawnSmoke(state, -3.05, 1.2, -3.15);
   }
   stepParticles(state, dt);

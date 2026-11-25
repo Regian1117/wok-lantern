@@ -19,7 +19,35 @@ import { triggerChopFeel } from '../feel/choppingFeel.js';
 import { triggerWokToss } from '../feel/wokTossFeel.js';
 import { enterFinishingPass } from '../recipes/finishingPass.js';
 import { serveBestOrder } from '../service/orderBoard.js';
-import { spawnSparks, spawnSteam } from '../feel/particles.js';
+import { spawnSteam } from '../feel/particles.js';
+
+const ITEM_TO_BASE = {
+  noodles: 'Noodles',
+  dumplings: 'Dumplings',
+  duck: 'Duck',
+  prawn: 'Prawn',
+  chili: 'Prawn',
+  bokchoy: 'Noodles',
+};
+
+function cookHeldDish(state, stationPath, sauce) {
+  if (!state.chef.holding || !state.chef.prepped) {
+    state.feedbackBanner = { text: 'NEEDS CHOP', tone: 'crimson', timer: 1.5 };
+    return null;
+  }
+  const base = ITEM_TO_BASE[state.chef.holding] || 'Noodles';
+  const dish = {
+    base,
+    stationPath,
+    sauce,
+    prepared: true,
+    finished: stationPath !== 'Island Carve' || base !== 'Duck',
+  };
+  state.chef.cookedDish = dish;
+  state.stations.pass.platedDish = dish;
+  state.feedbackBanner = { text: `PLATED ${base.toUpperCase()} (${stationPath.toUpperCase()})`, tone: 'jade', timer: 1.4 };
+  return dish;
+}
 
 export function findNearestStation(x, z, maxDist = 1.65) {
   let best = null;
@@ -39,22 +67,28 @@ export function interactWithStation(state, stationId, audio) {
   if (!st) return false;
   if (st.kind === 'crate') {
     state.chef.holding = st.item;
+    state.chef.prepped = false;
+    state.chef.cookedDish = null;
+    state.feedbackBanner = { text: `PICKED ${st.label}`, tone: 'jade', timer: 1.1 };
     if (audio) audio.playPickup();
     return true;
   }
   if (st.kind === 'chop') {
-    triggerChopFeel(state, audio);
-    spawnSparks(state, -4.65, 1.15, 0.85, 8);
-    return true;
+    return Boolean(triggerChopFeel(state, audio));
   }
-  if (st.id === 'wok_left' || st.id === 'wok_right') {
+  if (st.id === 'wok_left') {
+    return triggerWokToss(state, st.id, audio);
+  }
+  if (st.id === 'wok_right') {
     triggerWokToss(state, st.id, audio);
+    cookHeldDish(state, 'Wok Sear', 'Chili Crisp');
     return true;
   }
   if (st.kind === 'steamer') {
     state.stations.steamer.active = true;
     state.stations.steamer.progress = Math.min(1, state.stations.steamer.progress + 0.35);
     spawnSteam(state, -0.45, 1.55, -3.15);
+    cookHeldDish(state, 'Bamboo Steam', 'Black Vinegar');
     if (audio) audio.playSteam();
     return true;
   }
@@ -63,10 +97,9 @@ export function interactWithStation(state, stationId, audio) {
     isl.step = Math.min(isl.maxSteps, isl.step + 1);
     isl.progress = isl.step / isl.maxSteps;
     isl.label = `PEKING DUCK · ${isl.step}/${isl.maxSteps}`;
+    cookHeldDish(state, 'Island Carve', 'Plum Glaze');
     if (audio) audio.playChop();
-    if (isl.step >= isl.maxSteps) {
-      enterFinishingPass(state);
-    }
+    if (isl.step >= isl.maxSteps) enterFinishingPass(state);
     return true;
   }
   if (st.kind === 'pass') {

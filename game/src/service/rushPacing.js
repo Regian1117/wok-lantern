@@ -3,6 +3,7 @@ export const SHIFT_LIST = ['SHIFT 1 · ALLEY', 'SHIFT 2 · LANTERN HALL', 'SHIFT
 import { SHIFT_ALLEY_CART } from '../shifts/shiftAlleyCart.js';
 import { SHIFT_LANTERN_HALL } from '../shifts/shiftLanternHall.js';
 import { SHIFT_GRAND_BANQUET } from '../shifts/shiftGrandBanquet.js';
+import { recordLateOrderPenalty } from './scoringLedger.js';
 
 const SHIFTS = [SHIFT_ALLEY_CART, SHIFT_LANTERN_HALL, SHIFT_GRAND_BANQUET];
 
@@ -31,6 +32,15 @@ export function computeComboDecayRate(state) {
 export function canSpawnVipTicket(state) {
   const existingVip = (state.orders || []).filter((o) => o.vip).length;
   return state.shiftIndex >= 1 && existingVip < 2;
+}
+
+export function applyLateOrderPenalty(state, audio) {
+  recordLateOrderPenalty(state, 15);
+  state.stations.wokRight.heatCombo = 1;
+  state.stations.wokRight.callout = 'WOK HEI x1 · SEAR!';
+  state.ledger.heatMult = 1;
+  state.feedbackBanner = { text: 'LATE ORDER -$15', tone: 'crimson', timer: 1.8 };
+  if (audio) audio.playScorchWarn();
 }
 
 export function stepShiftClock(state, dt, audio) {
