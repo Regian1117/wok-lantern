@@ -5,217 +5,189 @@ import { ROUTE_POINTS } from '../kitchen/layout.js';
 import { computeLiveNextStep, getStationActionPrompt } from '../kitchen/routeGuide.js';
 import { getBatchSummaryLabel } from '../recipes/batchPrep.js';
 
-function drawBrassPointer(ctx, x1, y1, x2, y2) {
-  ctx.save();
-  ctx.strokeStyle = THEME.brassBright;
+function drawPtr(ctx, x1, y1, x2, y2) {
+  ctx.strokeStyle = ctx.fillStyle = THEME.brassBright;
   ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
-  ctx.fillStyle = THEME.brassBright;
-  ctx.beginPath();
-  ctx.arc(x2, y2, 3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x2, y2, 3, 0, Math.PI * 2); ctx.fill();
 }
 
-function drawWorldPill(ctx, x, y, text, fill, stroke, textColor, fontPx = 11, maxRight = null) {
-  ctx.save();
-  ctx.font = `800 ${fontPx}px ${FONT_UI}`;
+function drawPill(ctx, x, y, text, fill, stroke, tc, fp = 11, maxR = null) {
+  ctx.font = `800 ${fp}px ${FONT_UI}`;
   const pw = Math.ceil(ctx.measureText(text).width + 18);
-  const ph = 24;
   let rx = Math.round(x - pw / 2);
-  if (maxRight !== null && rx + pw > maxRight) rx = Math.round(maxRight - pw);
+  if (maxR !== null && rx + pw > maxR) rx = Math.round(maxR - pw);
   rx = Math.max(8, rx);
-  const ry = Math.round(y - ph / 2);
-  drawLacquerFrame(ctx, rx, ry, pw, ph, fill, stroke, 6, false);
-  ctx.fillStyle = textColor;
-  ctx.textAlign = 'center';
+  const ry = Math.round(y - 12);
+  drawLacquerFrame(ctx, rx, ry, pw, 24, fill, stroke, 6, false);
+  ctx.fillStyle = tc; ctx.textAlign = 'center';
   ctx.fillText(text, rx + pw / 2, ry + 16);
-  ctx.restore();
-  return { x: rx, y: ry, w: pw, h: ph };
+  return { x: rx, y: ry, w: pw, h: 24 };
 }
 
-function drawMeterPill(ctx, x, y, label, phase, fill, stroke, textColor, winStart, winWidth) {
-  ctx.save();
-  ctx.font = `800 11px ${FONT_UI}`;
-  const pw = Math.max(134, Math.ceil(ctx.measureText(label).width + 22));
-  const ph = 38;
-  const rx = Math.round(x - pw / 2);
-  const ry = Math.round(y - ph / 2);
-  drawLacquerFrame(ctx, rx, ry, pw, ph, fill, stroke, 7, false);
-  ctx.fillStyle = textColor;
-  ctx.textAlign = 'center';
+function drawMeter(ctx, x, y, label, phase, fill, stroke, tc, ws, ww, danger = false) {
+  ctx.font = `${danger ? 900 : 800} 11px ${FONT_UI}`;
+  const pw = Math.max(132, Math.ceil(ctx.measureText(label).width + 22));
+  const [rx, ry, bx, by, bw] = [Math.round(x - pw / 2), Math.round(y - 19), Math.round(x - pw / 2) + 11, Math.round(y - 19) + 24, pw - 22];
+  drawLacquerFrame(ctx, rx, ry, pw, 38, fill, stroke, 7, false);
+  ctx.fillStyle = tc; ctx.textAlign = 'center';
   ctx.fillText(label, x, ry + 15);
-  const barX = rx + 12;
-  const barY = ry + 24;
-  const barW = pw - 24;
-  ctx.fillStyle = '#3B1E18';
-  ctx.fillRect(barX, barY, barW, 7);
-  ctx.fillStyle = '#22C55E';
-  ctx.fillRect(barX + barW * winStart, barY, barW * winWidth, 7);
-  const nx = barX + Math.max(2, Math.min(barW - 5, phase * barW - 2));
-  ctx.fillStyle = THEME.brassBright;
-  ctx.fillRect(nx, barY - 1, 5, 9);
+  if (danger) {
+    ctx.fillStyle = '#DC2626'; ctx.fillRect(bx, by, bw, 7);
+    ctx.fillStyle = '#F59E0B'; ctx.fillRect(bx + Math.round(bw * 0.62 * phase), by, Math.round(bw * 0.38), 7);
+  } else {
+    ctx.fillStyle = '#3B1E18'; ctx.fillRect(bx, by, bw, 7);
+    ctx.fillStyle = '#22C55E'; ctx.fillRect(bx + bw * ws, by, bw * ww, 7);
+    ctx.fillStyle = THEME.brassBright; ctx.fillRect(bx + Math.max(2, Math.min(bw - 5, phase * bw - 2)), by - 1, 5, 9);
+  }
+  return { x: rx, y: ry, w: pw, h: 38 };
+}
+
+function drawFloorRoute(ctx, guide, api, w, h) {
+  const pts = (guide.routeStops || []).map((st) => api.projectWorldToScreen(st.x, st.y, st.z, w, h));
+  if (pts.length < 2) return pts;
+  ctx.save(); ctx.lineCap = ctx.lineJoin = 'round'; ctx.setLineDash([9, 6]);
+  for (const [stroke, lw, blur] of [['rgba(29,13,10,0.55)', 5.2, 0], ['#F7D070', 2.8, 6]]) {
+    ctx.strokeStyle = stroke; ctx.lineWidth = lw;
+    ctx.shadowColor = blur ? 'rgba(247,208,112,0.55)' : 'transparent'; ctx.shadowBlur = blur;
+    ctx.beginPath(); pts.forEach((p, i) => ctx[i ? 'lineTo' : 'moveTo'](p.x, p.y)); ctx.stroke();
+  }
+  ctx.setLineDash([]); ctx.shadowBlur = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [dx, dy] = [pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y];
+    if (Math.hypot(dx, dy) < 28) continue;
+    ctx.save();
+    ctx.translate((pts[i].x + pts[i + 1].x) * 0.5, (pts[i].y + pts[i + 1].y) * 0.5);
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -4.5); ctx.lineTo(-2, 0); ctx.lineTo(-4, 4.5); ctx.closePath();
+    ctx.fillStyle = '#F7D070'; ctx.fill(); ctx.strokeStyle = '#1D0D0A'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.restore();
+  }
   ctx.restore();
+  return pts;
+}
+
+function drawCrateTag(ctx, x, y, text, w, h, occ) {
+  ctx.font = `800 8.5px ${FONT_UI}`;
+  const pw = Math.ceil(ctx.measureText(text).width + 14);
+  const rx = Math.max(8, Math.min(w - pw - 8, Math.round(x - pw / 2)));
+  let ry = Math.max(96, Math.min(h - 86, Math.round(y - 8)));
+  for (const r of occ) if (rx < r.x + r.w + 4 && rx + pw + 4 > r.x && ry < r.y + r.h + 3 && ry + 19 > r.y) ry = Math.max(96, Math.min(h - 86, r.y + r.h + 4));
+  drawLacquerFrame(ctx, rx, ry, pw, 16, '#2E0909', '#D49B35', 4, false);
+  ctx.fillStyle = '#FAF3E6'; ctx.textAlign = 'center'; ctx.fillText(text, rx + pw / 2, ry + 11.2);
+  const rect = { x: rx, y: ry, w: pw, h: 16 };
+  occ.push(rect);
+  return rect;
 }
 
 function drawRadialGauge(ctx, x, y, progress, label) {
-  ctx.save();
   drawLacquerFrame(ctx, x - 64, y - 22, 162, 44, '#3A0A0A', '#F2C14E', 8, true);
   const cx = x - 40;
-  ctx.beginPath();
-  ctx.arc(cx, y, 14, 0, Math.PI * 2);
-  ctx.strokeStyle = '#5C1111';
-  ctx.lineWidth = 4;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(cx, y, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
-  ctx.strokeStyle = '#4ADE80';
-  ctx.lineWidth = 4;
-  ctx.stroke();
-  ctx.fillStyle = THEME.ricePaper;
-  ctx.font = `900 10px ${FONT_UI}`;
-  ctx.textAlign = 'center';
-  ctx.fillText(`${Math.round(progress * 100)}%`, cx, y + 3.5);
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#F7D070';
-  ctx.font = `800 11px ${FONT_UI}`;
-  ctx.fillText(label, x - 20, y + 4);
-  ctx.restore();
-}
-
-function drawNextGuidanceBar(ctx, state, w, h) {
-  if (state.mode !== 'kitchen') return;
-  const guide = computeLiveNextStep(state);
-  const batchText = getBatchSummaryLabel(state);
-  const barH = 26;
-  const barY = h - 84;
-  ctx.save();
-  ctx.font = `800 11px ${FONT_UI}`;
-  const mainW = Math.ceil(ctx.measureText(guide.bannerText).width + 24);
-  const batchW = batchText ? Math.ceil(ctx.measureText(batchText).width + 20) : 0;
-  const totalW = mainW + (batchW ? batchW + 8 : 0);
-  const sx = Math.round((w - totalW) / 2);
-
-  drawLacquerFrame(ctx, sx, barY, mainW, barH, '#3A0A0A', '#D49B35', 6, false);
-  ctx.fillStyle = '#F7D070';
-  ctx.textAlign = 'center';
-  ctx.fillText(guide.bannerText, sx + mainW / 2, barY + 17);
-
-  if (batchW > 0) {
-    const bx = sx + mainW + 8;
-    drawLacquerFrame(ctx, bx, barY, batchW, barH, THEME.jadeSoft, THEME.jade, 6, false);
-    ctx.fillStyle = '#14532D';
-    ctx.fillText(batchText, bx + batchW / 2, barY + 17);
+  for (const [end, col] of [[Math.PI * 2, '#5C1111'], [-Math.PI / 2 + Math.PI * 2 * progress, '#4ADE80']]) {
+    ctx.beginPath(); ctx.arc(cx, y, 14, col === '#5C1111' ? 0 : -Math.PI / 2, end);
+    ctx.strokeStyle = col; ctx.lineWidth = 4; ctx.stroke();
   }
-  state.hudBounds.nextBar = { x: sx, y: barY, w: totalW, h: barH };
-  ctx.restore();
+  ctx.fillStyle = THEME.ricePaper; ctx.font = `900 10px ${FONT_UI}`; ctx.textAlign = 'center';
+  ctx.fillText(`${Math.round(progress * 100)}%`, cx, y + 3.5);
+  ctx.textAlign = 'left'; ctx.fillStyle = '#F7D070'; ctx.font = `800 11px ${FONT_UI}`;
+  ctx.fillText(label, x - 20, y + 4);
 }
 
-export function drawStationCallouts(ctx, state, rendererApi, w, h) {
-  if (!rendererApi || state.mode === 'finish') return;
+function drawNextBar(ctx, guide, state, w, h) {
+  const bt = getBatchSummaryLabel(state);
+  const barY = h - 68;
+  ctx.font = `800 10.5px ${FONT_UI}`;
+  const mw = Math.ceil(ctx.measureText(guide.bannerText).width + 22);
+  const bw = bt ? Math.ceil(ctx.measureText(bt).width + 18) : 0;
+  const totalW = mw + (bw ? bw + 8 : 0);
+  const sx = Math.round((w - totalW) / 2);
+  drawLacquerFrame(ctx, sx, barY, mw, 22, '#3A0A0A', '#D49B35', 6, false);
+  ctx.fillStyle = '#F7D070'; ctx.textAlign = 'center'; ctx.fillText(guide.bannerText, sx + mw / 2, barY + 14.8);
+  if (bw > 0) {
+    drawLacquerFrame(ctx, sx + mw + 8, barY, bw, 22, THEME.jadeSoft, THEME.jade, 6, false);
+    ctx.fillStyle = '#14532D'; ctx.fillText(bt, sx + mw + 8 + bw / 2, barY + 14.8);
+  }
+  state.hudBounds.nextBar = { x: sx, y: barY, w: totalW, h: 22 };
+}
+
+export function drawStationCallouts(ctx, state, api, w, h) {
+  if (!api || state.mode === 'finish') return;
 
   if (state.mode === 'route') {
-    const modalW = Math.min(480, Math.round(w * 0.465));
-    const maxRight = w - modalW - 26;
-    const pts = ROUTE_POINTS.map((rp) => ({ ...rp, scr: rendererApi.projectWorldToScreen(rp.x, rp.y, rp.z, w, h) }));
-    ctx.save();
-    ctx.setLineDash([8, 6]);
-    ctx.strokeStyle = THEME.brassBright;
-    ctx.lineWidth = 3.2;
-    ctx.beginPath();
-    pts.forEach((p, idx) => (idx === 0 ? ctx.moveTo(Math.min(maxRight - 30, p.scr.x), p.scr.y) : ctx.lineTo(Math.min(maxRight - 30, p.scr.x), p.scr.y)));
-    ctx.stroke();
-    ctx.restore();
-    state.hudBounds.routePills = pts.map((p) =>
-      drawWorldPill(ctx, p.scr.x, Math.max(132, Math.min(h - 70, p.scr.y - 14)), `${p.step}. ${p.label}`, '#3A0A0A', '#F7D070', '#F7D070', 12, maxRight),
-    );
+    const maxR = w - Math.min(480, Math.round(w * 0.465)) - 26;
+    const pts = ROUTE_POINTS.map((rp) => ({ ...rp, scr: api.projectWorldToScreen(rp.x, rp.y, rp.z, w, h) }));
+    ctx.save(); ctx.setLineDash([8, 6]); ctx.strokeStyle = THEME.brassBright; ctx.lineWidth = 3.2; ctx.beginPath();
+    pts.forEach((p, i) => ctx[i ? 'lineTo' : 'moveTo'](Math.min(maxR - 30, p.scr.x), p.scr.y)); ctx.stroke(); ctx.restore();
+    state.hudBounds.routePills = pts.map((p) => drawPill(ctx, p.scr.x, Math.max(122, Math.min(h - 60, p.scr.y - 14)), `${p.step}. ${p.label}`, '#3A0A0A', '#F7D070', '#F7D070', 12, maxR));
     return;
   }
 
-  if (state.stations.wokLeft.scorched) {
-    const rim = rendererApi.projectWorldToScreen(-3.05, 1.25, -3.15, w, h);
-    const py = Math.max(134, rim.y - 58);
-    const px = Math.max(82, rim.x - 48);
-    drawBrassPointer(ctx, px, py + 12, rim.x, rim.y);
-    state.hudBounds.scorchPill = drawWorldPill(ctx, px, py, 'SCORCHED! -$20', '#5C1111', '#FDE047', '#FEE2E2', 11);
-  }
+  const guide = computeLiveNextStep(state);
+  if (state.mode === 'kitchen') state.hudBounds.floorRoutePoints = drawFloorRoute(ctx, guide, api, w, h);
 
+  if (state.stations.wokLeft.scorched) {
+    const rim = api.projectWorldToScreen(-3.05, 1.25, -3.15, w, h);
+    const [px, py] = [Math.max(88, rim.x - 50), Math.max(118, rim.y - 58)];
+    drawPtr(ctx, px, py + 19, rim.x, rim.y);
+    state.hudBounds.scorchPill = drawMeter(ctx, px, py, 'SCORCHED! -$20', 0.5 + 0.5 * Math.sin(state.time * 8), '#5C1111', '#FDE047', '#FEE2E2', 0, 1, true);
+  }
   if (state.shotMode || state.stations.wokRight.active) {
     const wr = state.stations.wokRight;
-    const wRim = rendererApi.projectWorldToScreen(-1.75, 1.35, -3.15, w, h);
-    const wy = Math.max(146, wRim.y - 52);
-    const wx = wRim.x + 30;
-    drawBrassPointer(ctx, wx, wy + 19, wRim.x, wRim.y);
-    drawMeterPill(ctx, wx, wy, wr.callout, wr.sweetPhase, '#3A0A0A', '#F7D070', '#F7D070', 0.34, 0.32);
+    const rim = api.projectWorldToScreen(-1.75, 1.35, -3.15, w, h);
+    const [wx, wy] = [rim.x + 30, Math.max(132, rim.y - 52)];
+    drawPtr(ctx, wx, wy + 19, rim.x, rim.y);
+    drawMeter(ctx, wx, wy, wr.callout, wr.sweetPhase, '#3A0A0A', '#F7D070', '#F7D070', 0.34, 0.32);
   }
-
   if (state.shotMode || state.stations.chop.flashTimer > 0 || (state.chef.holding && !state.chef.prepped)) {
-    const cRim = rendererApi.projectWorldToScreen(-4.65, 1.15, 0.85, w, h);
-    const cy = Math.max(146, cRim.y - 44);
-    const cx = Math.max(88, cRim.x + 6);
-    drawBrassPointer(ctx, cx, cy + 19, cRim.x, cRim.y);
-    drawMeterPill(ctx, cx, cy, state.stations.chop.lastLabel, state.chopMeter ?? 0.52, THEME.vipGold, '#D49B35', THEME.ink, 0.36, 0.28);
+    const rim = api.projectWorldToScreen(-4.65, 1.15, 0.85, w, h);
+    const [cx, cy] = [Math.max(88, rim.x + 6), Math.max(132, rim.y - 44)];
+    drawPtr(ctx, cx, cy + 19, rim.x, rim.y);
+    drawMeter(ctx, cx, cy, state.stations.chop.lastLabel, state.chopMeter ?? 0.52, THEME.vipGold, '#D49B35', THEME.ink, 0.36, 0.28);
   }
-
   if (!state.shotMode && state.chef.nearestStation) {
     const prompt = getStationActionPrompt(state, state.chef.nearestStation);
     if (prompt) {
-      const sp = rendererApi.projectWorldToScreen(state.chef.nearestStation.x, 1.45, state.chef.nearestStation.z, w, h);
-      drawWorldPill(ctx, Math.max(95, Math.min(w - 95, sp.x)), Math.max(134, Math.min(h - 118, sp.y - 24)), prompt, '#FEF3C7', '#D97706', THEME.ink, 11);
+      const sp = api.projectWorldToScreen(state.chef.nearestStation.x, 1.45, state.chef.nearestStation.z, w, h);
+      drawPill(ctx, Math.max(95, Math.min(w - 95, sp.x)), Math.max(120, Math.min(h - 102, sp.y - 24)), prompt, '#FEF3C7', '#D97706', THEME.ink);
     }
   }
-
   if (state.feedbackBanner && state.feedbackBanner.timer > 0) {
     const fb = state.feedbackBanner;
-    const fill = fb.tone === 'crimson' ? '#7F1D1D' : fb.tone === 'amber' ? '#FEF3C7' : THEME.jadeSoft;
-    const stroke = fb.tone === 'crimson' ? '#FDE047' : fb.tone === 'amber' ? '#D97706' : THEME.jade;
-    const txt = fb.tone === 'crimson' ? '#FFFFFF' : fb.tone === 'amber' ? THEME.ink : '#14532D';
-    drawWorldPill(ctx, w * 0.5, 114, fb.text, fill, stroke, txt, 12);
+    const tones = { crimson: ['#7F1D1D', '#FDE047', '#FFF'], amber: ['#FEF3C7', '#D97706', THEME.ink], jade: [THEME.jadeSoft, THEME.jade, '#14532D'] };
+    drawPill(ctx, w * 0.5, 102, fb.text, ...(tones[fb.tone] || tones.jade), 12);
   }
-
   if (state.shotMode || state.stations.island.step > 0) {
     const isl = state.stations.island;
-    const ip = rendererApi.projectWorldToScreen(0.38, 1.15, 0.12, w, h);
-    const gx = ip.x + 62;
-    const gy = Math.max(146, ip.y - 46);
-    drawBrassPointer(ctx, gx - 24, gy + 22, ip.x, ip.y);
+    const ip = api.projectWorldToScreen(0.38, 1.15, 0.12, w, h);
+    const [gx, gy] = [ip.x + 62, Math.max(132, ip.y - 46)];
+    drawPtr(ctx, gx - 24, gy + 22, ip.x, ip.y);
     drawRadialGauge(ctx, gx, gy, isl.progress, isl.label);
   }
 
-  const crateCoords = {
-    crate_chili: { x: 3.9, y: 1.35, z: -3.15, name: 'CHILI' },
-    crate_prawn: { x: 4.75, y: 1.35, z: -0.15, name: 'PRAWN' },
-    crate_noodles: { x: 1.2, y: 1.35, z: -3.15, name: 'NOODLES' },
-    crate_dumpling: { x: 4.75, y: 1.35, z: -1.6, name: 'DUMPLINGS' },
-    crate_duck: { x: 4.75, y: 1.35, z: 1.3, name: 'DUCK' },
-  };
-  const nextId = (state.nextCrateIds || [])[0];
-  if (nextId && crateCoords[nextId]) {
-    const info = crateCoords[nextId];
-    const pt = rendererApi.projectWorldToScreen(info.x, info.y, info.z, w, h);
-    const cy = Math.max(136, pt.y - 30);
-    const cx = Math.min(w - 78, pt.x);
-    drawBrassPointer(ctx, cx, cy + 12, pt.x, pt.y);
-    drawWorldPill(ctx, cx, cy, `${info.name} (NEXT)`, '#FEF3C7', '#D97706', THEME.ink, 10);
+  const crates = [
+    ['crate_noodles', 'NOODLES', 1.2, 1.0, -2.75], ['crate_bokchoy', 'GREENS', 2.55, 1.0, -2.75],
+    ['crate_chili', 'CHILI', 3.9, 1.35, -3.15], ['crate_dumpling', 'DUMPLINGS', 4.35, 1.0, -1.6],
+    ['crate_prawn', 'PRAWN', 4.75, 1.35, -0.15], ['crate_duck', 'DUCK', 4.35, 1.0, 1.3],
+  ];
+  const [nextId, batchId, occ] = [(state.nextCrateIds || [])[0], state.batchCrateId, []];
+  for (const [id, name, x, y, z] of crates) {
+    if (id !== nextId && id !== batchId) continue;
+    const pt = api.projectWorldToScreen(x, y, z, w, h);
+    const [cx, cy] = [Math.min(w - 86, pt.x), Math.max(122, pt.y - 28)];
+    drawPtr(ctx, cx, cy + 12, pt.x, pt.y);
+    const n = id === nextId;
+    occ.push(drawPill(ctx, cx, cy, n ? `${name} (NEXT)` : `${name} (BATCH +$10)`, n ? '#FEF3C7' : THEME.jadeSoft, n ? '#D97706' : THEME.jade, n ? THEME.ink : '#14532D', 10));
   }
-  if (state.batchCrateId && crateCoords[state.batchCrateId] && state.batchCrateId !== nextId) {
-    const bInfo = crateCoords[state.batchCrateId];
-    const bpt = rendererApi.projectWorldToScreen(bInfo.x, bInfo.y, bInfo.z, w, h);
-    const bcy = Math.max(136, bpt.y - 30);
-    const bcx = Math.min(w - 84, bpt.x);
-    drawBrassPointer(ctx, bcx, bcy + 12, bpt.x, bpt.y);
-    drawWorldPill(ctx, bcx, bcy, `${bInfo.name} (BATCH +$10)`, THEME.jadeSoft, THEME.jade, '#14532D', 10);
-  }
+  state.hudBounds.crateTags = crates.filter(([id]) => id !== nextId && id !== batchId).map(([id, name, x, y, z]) => {
+    const pt = api.projectWorldToScreen(x, y, z, w, h);
+    return { id, ...drawCrateTag(ctx, pt.x, pt.y, name, w, h, occ) };
+  });
 
   if (state.mode === 'kitchen' && (state.shotMode || state.chef.cookedDish)) {
-    const passPt = rendererApi.projectWorldToScreen(0.0, 0.95, 3.35, w, h);
-    const pillY = Math.min(h - 110, Math.max(passPt.y + 18, h - 118));
-    drawBrassPointer(ctx, passPt.x, pillY - 12, passPt.x, pillY - 24);
-    state.hudBounds.readyPill = drawWorldPill(ctx, passPt.x, pillY, state.stations.pass.activeReadyLabel, THEME.jadeSoft, THEME.jade, '#14532D', 11);
+    const passPt = api.projectWorldToScreen(0.0, 0.95, 3.35, w, h);
+    const pillY = Math.min(h - 94, Math.max(passPt.y + 16, h - 102));
+    drawPtr(ctx, passPt.x, pillY - 12, passPt.x, pillY - 22);
+    state.hudBounds.readyPill = drawPill(ctx, passPt.x, pillY, state.stations.pass.activeReadyLabel, THEME.jadeSoft, THEME.jade, '#14532D');
   }
-
-  drawNextGuidanceBar(ctx, state, w, h);
+  drawNextBar(ctx, guide, state, w, h);
 }

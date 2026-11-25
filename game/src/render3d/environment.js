@@ -43,6 +43,7 @@ export function setupKitchenLighting(scene) {
     [0xfff2d6, 2.4, 7.5, -1.8, 2.35, -3.0],
     [0xff8c42, 2.1, 7.0, -4.9, 2.3, 0.5],
     [0xff9d4a, 2.0, 7.5, 4.8, 2.4, -2.8],
+    [0xfff3d6, 1.8, 11, 3.8, 3.6, -0.6],
     [0xffd89e, 2.4, 7.5, 0.0, 3.1, 2.4],
   ];
   for (const [c, i, d, x, y, z] of pts) {

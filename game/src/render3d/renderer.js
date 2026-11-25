@@ -7,7 +7,6 @@ import { buildKitchenFixtures } from './sceneFixtures.js';
 import { buildKitchenFood } from './sceneFood.js';
 import { buildChefMesh } from './sceneChef.js';
 import { buildFinishHallScene } from './sceneHall.js';
-import { ROUTE_POINTS } from '../kitchen/layout.js';
 import { KITCHEN_STATIONS } from '../kitchen/stations.js';
 import { computeLiveNextStep } from '../kitchen/routeGuide.js';
 
@@ -22,7 +21,6 @@ export function createWorldRenderer(glCanvas) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x160a08);
   scene.environment = buildStudioEnvironment(renderer);
-
   const camera = new THREE.PerspectiveCamera(36, 16 / 9, 0.1, 60);
   const mats = createMaterialLibrary();
   const lights = setupKitchenLighting(scene);
@@ -39,16 +37,9 @@ export function createWorldRenderer(glCanvas) {
     new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }),
   );
   targetBeaconRing.rotation.x = -Math.PI / 2;
-  targetBeaconRing.position.set(0, 0.03, 0);
+  targetBeaconRing.position.y = 0.03;
   targetBeaconRing.visible = false;
   kitchenGroup.add(targetBeaconRing);
-
-  const routeTube = new THREE.Mesh(
-    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ROUTE_POINTS.map((p) => new THREE.Vector3(p.x, 1.05, p.z))), 40, 0.04, 8, false),
-    mats.goldHighlightMat,
-  );
-  routeTube.visible = false;
-  kitchenGroup.add(routeTube);
 
   const particlePool = [];
   const pGeo = new THREE.SphereGeometry(1, 8, 6);
@@ -67,7 +58,6 @@ export function createWorldRenderer(glCanvas) {
 
   const finishHall = buildFinishHallScene(mats);
   scene.add(finishHall.group);
-
   const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const raycaster = new THREE.Raycaster();
 
@@ -78,23 +68,16 @@ export function createWorldRenderer(glCanvas) {
   }
 
   function applyCameraForMode(state) {
-    if (state.mode === 'finish') {
-      camera.fov = 34;
-      camera.position.set(0.16, 2.95, 3.35);
-      camera.lookAt(0.32, 1.04, -0.35);
-    } else if (state.mode === 'route') {
-      camera.fov = 38;
-      camera.position.set(10.2, 9.8, 10.6);
-      camera.lookAt(3.1, 0.35, 0.1);
-    } else if (state.povMode === 'overhead') {
-      camera.fov = 42;
-      camera.position.set(0.0, 10.6, 7.2);
-      camera.lookAt(0.0, 0.4, 0.2);
-    } else {
-      camera.fov = 36;
-      camera.position.set(6.9, 7.0, 7.8);
-      camera.lookAt(0.0, 0.92, 0.08);
-    }
+    const camMap = {
+      finish: [34, 0.16, 2.95, 3.35, 0.32, 1.04, -0.35],
+      route: [38, 10.2, 9.8, 10.6, 3.1, 0.35, 0.1],
+      overhead: [42, 0.0, 10.6, 7.2, 0.0, 0.4, 0.2],
+      diagonal: [36, 6.9, 7.0, 7.8, 0.0, 0.92, 0.08],
+    };
+    const [fov, px, py, pz, lx, ly, lz] = camMap[state.mode === 'finish' || state.mode === 'route' ? state.mode : state.povMode] || camMap.diagonal;
+    camera.fov = fov;
+    camera.position.set(px, py, pz);
+    camera.lookAt(lx, ly, lz);
     camera.updateProjectionMatrix();
   }
 
@@ -108,25 +91,18 @@ export function createWorldRenderer(glCanvas) {
 
     if (!isFinish) {
       chef.update(state, state.time);
-      routeTube.visible = false;
       const pulse = 0.5 + 0.5 * Math.sin(state.time * 5.2);
       for (const [id, rim] of Object.entries(food.crateRims)) {
         rim.visible = state.nextCrateIds.includes(id);
         if (rim.visible) rim.scale.setScalar(1 + pulse * 0.04);
       }
-
-      if (!state.shotMode && state.mode === 'kitchen') {
-        const nextGuide = computeLiveNextStep(state);
-        const st = KITCHEN_STATIONS.find((s) => s.id === nextGuide.targetStationId);
-        if (st) {
-          targetBeaconRing.visible = true;
-          targetBeaconRing.position.set(st.interactX ?? st.x, 0.03, st.interactZ ?? st.z);
-          targetBeaconRing.scale.setScalar(0.92 + pulse * 0.22);
-        } else {
-          targetBeaconRing.visible = false;
-        }
-      } else {
-        targetBeaconRing.visible = false;
+      const nextSt = !state.shotMode && state.mode === 'kitchen'
+        ? KITCHEN_STATIONS.find((s) => s.id === computeLiveNextStep(state).targetStationId)
+        : null;
+      targetBeaconRing.visible = Boolean(nextSt);
+      if (nextSt) {
+        targetBeaconRing.position.set(nextSt.interactX ?? nextSt.x, 0.03, nextSt.interactZ ?? nextSt.z);
+        targetBeaconRing.scale.setScalar(0.92 + pulse * 0.22);
       }
 
       food.passShowcase.visible = Boolean(state.shotMode || state.stations.pass.servedTimer > 0);
@@ -141,26 +117,17 @@ export function createWorldRenderer(glCanvas) {
       for (let i = 0; i < particlePool.length; i++) {
         const mesh = particlePool[i];
         const p = state.particles[i];
-        if (!p) {
-          mesh.visible = false;
-          continue;
-        }
-        mesh.visible = true;
+        mesh.visible = Boolean(p);
+        if (!p) continue;
         mesh.position.set(p.x, p.y, p.z);
-        const fade = 1 - p.age / p.life;
-        mesh.scale.setScalar(Math.max(0.01, p.size * (0.6 + (1 - fade) * 0.9)));
+        mesh.scale.setScalar(Math.max(0.01, p.size * (0.6 + (p.age / p.life) * 0.9)));
         mesh.material = pMats[p.kind] || pMats.steam;
       }
     } else {
       finishHall.pourGrp.position.x = Math.sin(state.time * 3.0) * 0.04;
       finishHall.drizzleRing.scale.setScalar(1 + Math.sin(state.time * 4) * 0.03);
-      if (finishHall.steamWisps) {
-        finishHall.steamWisps.forEach((w, idx) => {
-          w.position.y = 1.38 + ((state.time * 0.35 + idx * 0.25) % 0.42);
-        });
-      }
+      if (finishHall.steamWisps) finishHall.steamWisps.forEach((w, idx) => { w.position.y = 1.38 + ((state.time * 0.35 + idx * 0.25) % 0.42); });
     }
-
     renderer.render(scene, camera);
   }
 

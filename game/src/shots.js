@@ -4,13 +4,10 @@ import { spawnFlame, spawnSmoke, spawnSteam } from './feel/particles.js';
 import { assignPatronToOrder } from './service/guestMoods.js';
 
 function applyHeroShowcaseData(state) {
-  state.shiftIndex = 1;
-  state.clockSec = 100;
-  state.chef.holding = 'dumplings';
-  state.chef.prepped = true;
+  state.shiftIndex = 1; state.clockSec = 100;
+  state.chef.holding = 'dumplings'; state.chef.prepped = true;
   state.batchPrep = { chili: 2, bokchoy: 0, prepStreak: 2, totalBatches: 2 };
-  state.nextCrateIds = ['crate_prawn'];
-  state.batchCrateId = 'crate_chili';
+  state.nextCrateIds = ['crate_prawn']; state.batchCrateId = 'crate_chili';
   state.stations.chop = { flashTimer: 0.85, hitstop: 0, lastLabel: 'CHOP! PERFECT', choppedItem: 'scallion' };
   state.stations.wokLeft = { scorched: true, active: true, stage: 'scorched', heat: 1.0, timer: 0, item: 'chili' };
   state.stations.wokRight = { active: true, item: 'noodles', progress: 0.72, sweetPhase: 0.5, sweetCenter: 0.5, sweetWidth: 0.22, heatCombo: 6, flashTimer: 0.8, callout: 'WOK HEI x6 · SEAR!' };
@@ -18,16 +15,17 @@ function applyHeroShowcaseData(state) {
   state.stations.pass.showcasePlates = true;
   state.stations.pass.platedDish = { recipeId: 'char_kway_teow', base: 'Noodles', stationPath: 'Wok Sear', sauce: 'Chili Crisp', prepared: true, finished: true };
 
-  state.orders = [
-    { id: 'ord_1', recipeId: 'char_kway_teow', title: 'CHAR KWAY TEOW', base: 'Noodles', stationPath: 'Wok Sear', sauce: 'Chili Crisp', price: 34, stepLabel: 'Wok Sear: Noodles', nextIng: 'Noodles', timeLeft: 28, maxTime: 40, vip: false, urgent: false },
-    { id: 'ord_2', recipeId: 'xiaolongbao', title: 'XIAOLONGBAO', base: 'Dumplings', stationPath: 'Bamboo Steam', sauce: 'Black Vinegar', price: 38, stepLabel: 'Steam: Dumplings', nextIng: 'Dumplings', timeLeft: 22, maxTime: 36, vip: false, urgent: false },
-    { id: 'ord_3', recipeId: 'vip_peking_duck', title: 'VIP PEKING DUCK', base: 'Duck', stationPath: 'Island Carve', sauce: 'Plum Glaze', price: 74, stepLabel: 'Carve 2/3 -> Glaze', nextIng: 'Duck', timeLeft: 32, maxTime: 48, vip: true, urgent: false },
-    { id: 'ord_4', recipeId: 'chili_prawn', title: 'CHILI PRAWN', base: 'Prawn', stationPath: 'Wok Sear', sauce: 'Chili Crisp', price: 46, stepLabel: 'Next: Prawn (0:04)', nextIng: 'Prawn', timeLeft: 4, maxTime: 30, vip: false, urgent: true },
+  const spec = [
+    ['ord_1', 'char_kway_teow', 'CHAR KWAY TEOW', 'Noodles', 'Wok Sear', 'Chili Crisp', 34, 'Wok Sear: Noodles', 28, 40, 0, 0, 'AH-FONG', 'REGULAR', 'HAPPY', '#15803D'],
+    ['ord_2', 'xiaolongbao', 'XIAOLONGBAO', 'Dumplings', 'Bamboo Steam', 'Black Vinegar', 38, 'Steam: Dumplings', 22, 36, 0, 0, 'SINGER YAN', 'REGULAR', 'WAITING', '#D99B26'],
+    ['ord_3', 'vip_peking_duck', 'VIP PEKING DUCK', 'Duck', 'Island Carve', 'Plum Glaze', 74, 'Carve 2/3 -> Glaze', 32, 48, 1, 0, 'CRITIC MEI', 'VIP CRITIC', 'HAPPY', '#15803D'],
+    ['ord_4', 'chili_prawn', 'CHILI PRAWN', 'Prawn', 'Wok Sear', 'Chili Crisp', 46, 'Next: Prawn (0:04)', 4, 30, 0, 1, 'COURIER BO', 'HURRY', 'FURIOUS', '#B91C1C'],
   ];
-  state.orders[0].patron = { ...assignPatronToOrder(state.orders[0], state.rng, 1), name: 'AH-FONG', role: 'REGULAR', mood: 'HAPPY', color: '#15803D' };
-  state.orders[1].patron = { ...assignPatronToOrder(state.orders[1], state.rng, 1), name: 'SINGER YAN', role: 'REGULAR', mood: 'WAITING', color: '#D99B26' };
-  state.orders[2].patron = { ...assignPatronToOrder(state.orders[2], state.rng, 1), name: 'CRITIC MEI', role: 'VIP CRITIC', mood: 'HAPPY', color: '#15803D' };
-  state.orders[3].patron = { ...assignPatronToOrder(state.orders[3], state.rng, 1), name: 'COURIER BO', role: 'HURRY', mood: 'FURIOUS', color: '#B91C1C' };
+  state.orders = spec.map(([id, recipeId, title, base, stationPath, sauce, price, stepLabel, timeLeft, maxTime, vip, urgent, pname, prole, mood, color]) => {
+    const o = { id, recipeId, title, base, stationPath, sauce, price, stepLabel, nextIng: base, timeLeft, maxTime, vip: Boolean(vip), urgent: Boolean(urgent) };
+    o.patron = { ...assignPatronToOrder(o, state.rng, 1), name: pname, role: prole, mood, color };
+    return o;
+  });
 
   state.ledger = { dishesServed: 8, avgPrice: 50, basePay: 400, heatCombo: 6, heatMult: 6, heiBonus: 100, scorchCount: 1, scorchPenalty: 20, lateOrderCount: 0, latePenaltyTotal: 0, grossSubtotal: 500, netPay: 480, stars: 3, unlockedUpgrade: 'jet_wok' };
 }
@@ -35,8 +33,7 @@ function applyHeroShowcaseData(state) {
 export function applyShotMode(state, searchString) {
   const shot = new URLSearchParams(searchString || '').get('shot');
   if (!shot) return null;
-  state.shotMode = shot;
-  state.time = 2.4;
+  state.shotMode = shot; state.time = 2.4;
   applyHeroShowcaseData(state);
 
   if (shot === 'hero') {
@@ -47,13 +44,9 @@ export function applyShotMode(state, searchString) {
       spawnSteam(state, -0.45, 1.55 + i * 0.12, -3.15);
     }
   } else if (shot === 'finish') {
-    state.mode = 'finish';
-    state.finishing.selectedSauce = 'plum';
-    state.finishing.pourAnim = 0.55;
-  } else if (shot === 'route') {
-    state.mode = 'route';
-  } else if (shot === 'ledger') {
-    state.mode = 'ledger';
+    state.mode = 'finish'; state.finishing.selectedSauce = 'plum'; state.finishing.pourAnim = 0.55;
+  } else if (shot === 'route' || shot === 'ledger') {
+    state.mode = shot;
   }
   return shot;
 }

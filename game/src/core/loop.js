@@ -19,37 +19,20 @@ function handleModeInputs(state, actions, audio) {
     if (audio) audio.setMuted(state.audioMuted);
   }
   if (actions.KeyV && state.mode !== 'finish') state.povMode = state.povMode === 'diagonal' ? 'overhead' : 'diagonal';
-  if (actions.Escape && state.mode !== 'kitchen') {
-    state.mode = 'kitchen';
-    return;
-  }
+  if (actions.Escape && state.mode !== 'kitchen') { state.mode = 'kitchen'; return; }
   if (state.mode === 'finish') {
-    if (actions.Digit1) applyFinishingSauce(state, SAUCE_KEYS[0], audio);
-    if (actions.Digit2) applyFinishingSauce(state, SAUCE_KEYS[1], audio);
-    if (actions.Digit3) applyFinishingSauce(state, SAUCE_KEYS[2], audio);
-    if (actions.Digit4) applyFinishingSauce(state, SAUCE_KEYS[3], audio);
+    for (let i = 0; i < 4; i++) if (actions[`Digit${i + 1}`]) applyFinishingSauce(state, SAUCE_KEYS[i], audio);
     if (actions.Space) completeFinishingPass(state, audio);
     if (actions.KeyF) state.mode = 'kitchen';
     return;
   }
-  if (state.mode === 'ledger') {
-    if (actions.Space || actions.Enter) advanceToNextShift(state, audio);
-    return;
-  }
-  if (actions.KeyR || actions.Tab) {
-    state.mode = state.mode === 'route' ? 'kitchen' : 'route';
-    return;
-  }
+  if (state.mode === 'ledger') { if (actions.Space || actions.Enter) advanceToNextShift(state, audio); return; }
+  if (actions.KeyR || actions.Tab) { state.mode = state.mode === 'route' ? 'kitchen' : 'route'; return; }
   if (state.mode === 'route') {
-    if (actions.Digit1) state.shiftIndex = 0;
-    else if (actions.Digit2) state.shiftIndex = 1;
-    else if (actions.Digit3) state.shiftIndex = 2;
+    for (let i = 0; i < 3; i++) if (actions[`Digit${i + 1}`]) state.shiftIndex = i;
     return;
   }
-  if (actions.KeyF) {
-    enterFinishingPass(state);
-    return;
-  }
+  if (actions.KeyF) { enterFinishingPass(state); return; }
 
   const near = state.chef.nearestStation;
   if (actions.KeyE) {
@@ -57,42 +40,31 @@ function handleModeInputs(state, actions, audio) {
     else state.feedbackBanner = { text: 'MOVE OR CLICK A STATION', tone: 'amber', timer: 1.2 };
   }
   if (actions.Space) {
-    if (near && ['chop', 'wok_left', 'wok_right', 'pass'].includes(near.id)) {
-      interactWithStation(state, near.id, audio);
-    } else if (near && near.id === 'island') {
+    if (near && ['chop', 'wok_left', 'wok_right', 'pass'].includes(near.id)) interactWithStation(state, near.id, audio);
+    else if (near && near.id === 'island') {
       if (state.stations.island.step >= state.stations.island.maxSteps) enterFinishingPass(state);
       else interactWithStation(state, 'island', audio);
-    } else if (state.chef.cookedDish && near && near.id === 'pass') {
-      serveBestOrder(state, audio);
-    } else if (state.stations.island.step >= state.stations.island.maxSteps) {
-      enterFinishingPass(state);
-    } else {
-      state.feedbackBanner = { text: 'WALK TO PASS TO SERVE', tone: 'amber', timer: 1.2 };
-    }
+    } else if (state.chef.cookedDish && near && near.id === 'pass') serveBestOrder(state, audio);
+    else if (state.stations.island.step >= state.stations.island.maxSteps) enterFinishingPass(state);
+    else state.feedbackBanner = { text: 'WALK TO PASS TO SERVE', tone: 'amber', timer: 1.2 };
   }
 }
 
 export function stepSimulation(state, rawDt, input, audio) {
   const dt = clamp(rawDt, 0.001, MAX_SIM_DT);
   state.time += dt;
-  const actions = input ? input.consumeActions() : {};
-  handleModeInputs(state, actions, audio);
+  handleModeInputs(state, input ? input.consumeActions() : {}, audio);
 
-  if (state.shotMode) {
-    stepParticles(state, dt * 0.5);
-    return;
-  }
-
+  if (state.shotMode) { stepParticles(state, dt * 0.5); return; }
   if (state.mode === 'kitchen') {
-    const moveVec = input ? input.getMoveVector() : { x: 0, z: 0 };
-    if (Math.abs(moveVec.x) > 0.01 || Math.abs(moveVec.z) > 0.01) {
+    const mv = input ? input.getMoveVector() : { x: 0, z: 0 };
+    if (Math.abs(mv.x) > 0.01 || Math.abs(mv.z) > 0.01) {
       state.chef.waypoints = [];
       state.chef.targetStation = null;
-      moveChefWithCollision(state.chef, moveVec.x, moveVec.z, dt);
+      moveChefWithCollision(state.chef, mv.x, mv.z, dt);
     } else if (state.chef.waypoints.length > 0) {
       const wp = state.chef.waypoints[0];
-      const dx = wp.x - state.chef.x;
-      const dz = wp.z - state.chef.z;
+      const [dx, dz] = [wp.x - state.chef.x, wp.z - state.chef.z];
       const dist = Math.hypot(dx, dz);
       if (dist < 0.16) {
         state.chef.waypoints.shift();
@@ -100,9 +72,7 @@ export function stepSimulation(state, rawDt, input, audio) {
           interactWithStation(state, state.chef.targetStation, audio);
           state.chef.targetStation = null;
         }
-      } else {
-        moveChefWithCollision(state.chef, dx / dist, dz / dist, dt);
-      }
+      } else moveChefWithCollision(state.chef, dx / dist, dz / dist, dt);
     }
     state.chef.nearestStation = findNearestStation(state.chef.x, state.chef.z, 1.55);
     stepOrderTimers(state, dt, audio);
@@ -117,8 +87,8 @@ export function stepSimulation(state, rawDt, input, audio) {
 
   if (state.rng() < dt * 8) spawnSteam(state, -0.45, 1.45, -3.15);
   if (state.rng() < dt * 10) spawnFlame(state, -1.75, 1.05, -3.15);
-  const wlStage = state.stations.wokLeft.stage;
-  if (state.stations.wokLeft.active && (wlStage === 'smoke' || wlStage === 'scorched') && state.rng() < dt * 9) {
+  const wl = state.stations.wokLeft.stage;
+  if (state.stations.wokLeft.active && (wl === 'smoke' || wl === 'scorched') && state.rng() < dt * 9) {
     spawnSmoke(state, -3.05, 1.2, -3.15);
   }
   stepParticles(state, dt);

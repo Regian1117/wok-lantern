@@ -65,26 +65,27 @@ export function drawBrassDrawerButton(ctx, x, y, w, h, keyText, labelText, varia
   drawPlaque(ctx, x, y, w, h, v.fill, v.border, 1.6, 6);
   drawBrassPullBar(ctx, x + w / 2, y, Math.min(32, Math.max(18, w * 0.28)));
   ctx.save();
-  ctx.font = `800 10.5px ${FONT_UI}`;
-  const kw = keyText ? Math.ceil(ctx.measureText(keyText).width + 11) : 0;
-  const kx = x + 7;
+  ctx.font = `800 ${h <= 28 ? 9.5 : 10.5}px ${FONT_UI}`;
+  const kw = keyText ? Math.ceil(ctx.measureText(keyText).width + 10) : 0;
+  const kh = Math.min(22, Math.max(16, h - 8));
+  const kx = x + 6;
   if (keyText) {
-    drawPlaque(ctx, kx, y + Math.round((h - 22) / 2) + 1, kw, 22, v.keyBg, v.border, 1, 4);
+    drawPlaque(ctx, kx, y + Math.round((h - kh) / 2) + 1, kw, kh, v.keyBg, v.border, 1, 4);
     ctx.fillStyle = v.keyText;
     ctx.textAlign = 'center';
-    ctx.fillText(keyText, kx + kw / 2, y + h / 2 + 4.5);
+    ctx.fillText(keyText, kx + kw / 2, y + h / 2 + 3.8);
   }
-  const remX = keyText ? kx + kw + 6 : x + 8;
-  const remW = x + w - 6 - remX;
+  const remX = keyText ? kx + kw + 5 : x + 7;
+  const remW = x + w - 5 - remX;
   if (iconFn) {
-    iconFn(ctx, remX + 8, y + h / 2 + 1);
+    iconFn(ctx, remX + 7, y + h / 2 + 1);
     ctx.fillStyle = v.text;
     ctx.textAlign = 'left';
-    ctx.fillText(labelText, remX + 18, y + h / 2 + 4.5, Math.max(20, remW - 18));
+    ctx.fillText(labelText, remX + 16, y + h / 2 + 3.8, Math.max(20, remW - 16));
   } else {
     ctx.fillStyle = v.text;
     ctx.textAlign = 'center';
-    ctx.fillText(labelText, remX + remW / 2, y + h / 2 + 4.5, Math.max(20, remW));
+    ctx.fillText(labelText, remX + remW / 2, y + h / 2 + 3.8, Math.max(20, remW));
   }
   ctx.restore();
 }

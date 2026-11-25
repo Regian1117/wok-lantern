@@ -1,6 +1,6 @@
 export const CONTROL_DOCK_ID = 'controlDock';
 
-import { THEME, FONT_UI, drawPlaque, drawBrassPullBar, drawBrassDrawerButton, registerHitbox } from './hudTheme.js';
+import { FONT_UI, drawPlaque, drawBrassPullBar, drawBrassDrawerButton, registerHitbox } from './hudTheme.js';
 import { drawSpeakerIcon, drawCheckIcon } from './vectorIcons.js';
 
 function getHoldDescriptor(chef) {
@@ -20,13 +20,13 @@ function drawGroupedModesChip(ctx, state, x, y, w, h) {
   ];
   const sw = Math.floor((w - 16) / 3);
   ctx.save();
-  ctx.font = `800 9.5px ${FONT_UI}`;
+  ctx.font = `800 9px ${FONT_UI}`;
   subs.forEach((s, idx) => {
     const sx = x + 5 + idx * (sw + 3);
-    drawPlaque(ctx, sx, y + 6, sw, h - 12, '#240707', '#D49B35', 1, 4);
+    drawPlaque(ctx, sx, y + 4, sw, h - 8, '#240707', '#D49B35', 1, 4);
     ctx.fillStyle = '#FCD34D';
     ctx.textAlign = 'center';
-    ctx.fillText(`[${s.key}] ${s.lbl}`, sx + sw / 2, y + h / 2 + 3.5, sw - 4);
+    ctx.fillText(`[${s.key}] ${s.lbl}`, sx + sw / 2, y + h / 2 + 3.2, sw - 4);
     registerHitbox(state, s.id, sx, y, sw, h);
   });
   ctx.restore();
@@ -36,13 +36,14 @@ export function drawControlDock(ctx, state, w, h) {
   if (state.mode === 'finish') return;
 
   const compact = w < 1120;
-  const dockH = 38;
-  const y = h - dockH - 10;
+  const railH = 36;
+  const dockY = h - 40;
+  const bh = 26;
+  const y = dockY + 5;
   const gap = compact ? 8 : 10;
   const hold = getHoldDescriptor(state.chef);
 
-  // Integrated crimson-lacquer drawer rail
-  drawPlaque(ctx, 8, y - 4, w - 16, dockH + 10, '#2B0808', '#D49B35', 1.5, 8);
+  drawPlaque(ctx, 8, dockY, w - 16, railH, '#2B0808', '#D49B35', 1.5, 8);
 
   const slots = [
     { kind: 'btn', id: 'dock_move', key: 'WASD/CLICK', label: 'MOVE', variant: 'lacquer', w: compact ? 156 : 172, hit: false },
@@ -58,20 +59,20 @@ export function drawControlDock(ctx, state, w, h) {
 
   for (const sl of slots) {
     if (sl.kind === 'modes') {
-      drawGroupedModesChip(ctx, state, curX, y, sl.w, dockH);
+      drawGroupedModesChip(ctx, state, curX, y, sl.w, bh);
     } else if (sl.kind === 'sfx') {
-      drawBrassDrawerButton(ctx, curX, y, sl.w, dockH, sl.key, sl.label, sl.variant, (c, ix, iy) =>
-        drawSpeakerIcon(c, ix, iy, 12, state.audioMuted, state.audioMuted ? '#B91C1C' : '#14532D'),
+      drawBrassDrawerButton(ctx, curX, y, sl.w, bh, sl.key, sl.label, sl.variant, (c, ix, iy) =>
+        drawSpeakerIcon(c, ix, iy, 11, state.audioMuted, state.audioMuted ? '#B91C1C' : '#14532D'),
       );
-      registerHitbox(state, sl.id, curX, y, sl.w, dockH);
+      registerHitbox(state, sl.id, curX, y, sl.w, bh);
     } else if (sl.kind === 'hold') {
-      const iconFn = sl.checked ? (c, ix, iy) => drawCheckIcon(c, ix, iy, 10, '#15803D') : null;
-      drawBrassDrawerButton(ctx, curX, y, sl.w, dockH, sl.key, sl.label, sl.variant, iconFn);
+      const iconFn = sl.checked ? (c, ix, iy) => drawCheckIcon(c, ix, iy, 9.5, '#15803D') : null;
+      drawBrassDrawerButton(ctx, curX, y, sl.w, bh, sl.key, sl.label, sl.variant, iconFn);
     } else {
-      drawBrassDrawerButton(ctx, curX, y, sl.w, dockH, sl.key, sl.label, sl.variant);
-      if (sl.hit) registerHitbox(state, sl.id, curX, y, sl.w, dockH);
+      drawBrassDrawerButton(ctx, curX, y, sl.w, bh, sl.key, sl.label, sl.variant);
+      if (sl.hit) registerHitbox(state, sl.id, curX, y, sl.w, bh);
     }
-    bounds.push({ id: sl.id || 'dock_modes', x: curX, y, w: sl.w, h: dockH });
+    bounds.push({ id: sl.id || 'dock_modes', x: curX, y, w: sl.w, h: bh });
     curX += sl.w + gap;
   }
 
