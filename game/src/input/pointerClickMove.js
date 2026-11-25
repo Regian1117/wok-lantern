@@ -5,8 +5,18 @@ import { planChefPath } from '../kitchen/navigation.js';
 import { findNearestStation, interactWithStation } from '../kitchen/stations.js';
 import { applyFinishingSauce, completeFinishingPass, enterFinishingPass } from '../recipes/finishingPass.js';
 import { toggleUpgrade } from '../shifts/upgrades.js';
-import { advanceToNextShift } from '../service/rushPacing.js';
+import { advanceToNextShift, getActiveShift } from '../service/rushPacing.js';
 import { serveBestOrder } from '../service/orderBoard.js';
+import { createFreshStartOrders } from '../core/state.js';
+
+function switchShiftFromModal(state, idx, audio) {
+  state.shiftIndex = idx;
+  const shift = getActiveShift(state);
+  state.clockSec = shift.durationSec;
+  state.orders = createFreshStartOrders(state.rng, idx);
+  state.mode = 'kitchen';
+  if (audio) audio.playPickup();
+}
 
 function handleHudAction(hit, state, audio) {
   const id = hit.id;
@@ -22,7 +32,8 @@ function handleHudAction(hit, state, audio) {
   } else if (id === 'dock_serve') {
     serveBestOrder(state, audio);
   } else if (id === 'dock_wok') {
-    interactWithStation(state, 'wok_right', audio);
+    if (state.chef.nearestStation) interactWithStation(state, state.chef.nearestStation.id, audio);
+    else state.feedbackBanner = { text: 'WALK TO A STATION FIRST', tone: 'amber', timer: 1.2 };
   } else if (id.startsWith('sauce_')) {
     applyFinishingSauce(state, id.slice(6), audio);
   } else if (id === 'finish_serve_bell') {
@@ -30,7 +41,7 @@ function handleHudAction(hit, state, audio) {
   } else if (id === 'finish_back' || id === 'route_close') {
     state.mode = 'kitchen';
   } else if (id.startsWith('route_shift_')) {
-    state.shiftIndex = Number(id.slice(12)) || 0;
+    switchShiftFromModal(state, Number(id.slice(12)) || 0, audio);
   } else if (id.startsWith('upgrade_')) {
     toggleUpgrade(state, id.slice(8), audio);
   } else if (id === 'ledger_next') {

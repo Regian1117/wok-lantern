@@ -32,7 +32,7 @@ const ITEM_TO_BASE = {
 
 function cookHeldDish(state, stationPath, sauce) {
   if (!state.chef.holding || !state.chef.prepped) {
-    state.feedbackBanner = { text: 'NEEDS CHOP', tone: 'crimson', timer: 1.5 };
+    state.feedbackBanner = { text: state.chef.holding ? 'NEEDS CHOP' : 'PICK AN INGREDIENT', tone: 'crimson', timer: 1.5 };
     return null;
   }
   const base = ITEM_TO_BASE[state.chef.holding] || 'Noodles';
@@ -43,9 +43,11 @@ function cookHeldDish(state, stationPath, sauce) {
     prepared: true,
     finished: stationPath !== 'Island Carve' || base !== 'Duck',
   };
+  // Physical carry-to-pass: dish goes ONLY into chef hands, never ghost-teleported to pass
   state.chef.cookedDish = dish;
-  state.stations.pass.platedDish = dish;
-  state.feedbackBanner = { text: `PLATED ${base.toUpperCase()} (${stationPath.toUpperCase()})`, tone: 'jade', timer: 1.4 };
+  state.chef.holding = null;
+  state.chef.prepped = false;
+  state.feedbackBanner = { text: `CARRY ${base.toUpperCase()} TO PASS`, tone: 'jade', timer: 1.6 };
   return dish;
 }
 
@@ -73,15 +75,15 @@ export function interactWithStation(state, stationId, audio) {
     if (audio) audio.playPickup();
     return true;
   }
-  if (st.kind === 'chop') {
-    return Boolean(triggerChopFeel(state, audio));
-  }
+  if (st.kind === 'chop') return Boolean(triggerChopFeel(state, audio));
   if (st.id === 'wok_left') {
-    return triggerWokToss(state, st.id, audio);
+    const canCook = triggerWokToss(state, 'wok_left', audio);
+    if (canCook && state.chef.holding && state.chef.prepped) cookHeldDish(state, 'Wok Sear', 'Chili Crisp');
+    return true;
   }
   if (st.id === 'wok_right') {
-    triggerWokToss(state, st.id, audio);
-    cookHeldDish(state, 'Wok Sear', 'Chili Crisp');
+    triggerWokToss(state, 'wok_right', audio);
+    if (state.chef.holding) cookHeldDish(state, 'Wok Sear', 'Chili Crisp');
     return true;
   }
   if (st.kind === 'steamer') {
@@ -102,9 +104,6 @@ export function interactWithStation(state, stationId, audio) {
     if (isl.step >= isl.maxSteps) enterFinishingPass(state);
     return true;
   }
-  if (st.kind === 'pass') {
-    serveBestOrder(state, audio);
-    return true;
-  }
+  if (st.kind === 'pass') return serveBestOrder(state, audio) > 0;
   return false;
 }

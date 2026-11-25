@@ -7,26 +7,29 @@ export function triggerWokToss(state, stationId, audio) {
   state.chef.wokAnim = 1.0;
   if (stationId === 'wok_left') {
     const wl = state.stations.wokLeft;
+    const wasScorched = wl.scorched;
     wl.scorched = false;
+    wl.active = true;
     wl.stage = 'cool';
     wl.timer = 5.0;
-    state.feedbackBanner = { text: 'WOK COOLED (5s)', tone: 'jade', timer: 1.2 };
+    state.feedbackBanner = { text: wasScorched ? 'WOK RESCUED (5s)' : 'LEFT WOK SEARING!', tone: 'jade', timer: 1.2 };
     if (audio) audio.playWokSear(2);
+    spawnFlame(state, -3.05, 1.1, -3.15);
     spawnSparks(state, -3.05, 1.15, -3.15, 6);
-    return true;
+    return !wasScorched;
   }
   const wr = state.stations.wokRight;
+  wr.active = true;
   const distFromCenter = Math.abs(wr.sweetPhase - wr.sweetCenter);
   const inSweet = distFromCenter <= wr.sweetWidth * 0.7;
   if (inSweet) {
     wr.heatCombo = Math.min(9, wr.heatCombo + 1);
-    wr.callout = `WOK HEI x${wr.heatCombo} · SEAR!`;
     state.ledger.heiBonus += 15;
     recomputeLedger(state);
   } else {
     wr.heatCombo = Math.max(1, wr.heatCombo);
-    wr.callout = `WOK HEI x${wr.heatCombo} · SEAR!`;
   }
+  wr.callout = `WOK HEI x${wr.heatCombo} · SEAR!`;
   const boost = state.upgrades.jet_wok ? 0.35 : 0.25;
   wr.progress = (wr.progress + boost) % 1.0;
   wr.flashTimer = 0.75;
@@ -37,15 +40,13 @@ export function triggerWokToss(state, stationId, audio) {
 }
 
 export function stepWokFeel(state, dt, audio) {
-  if (state.chef.wokAnim > 0) {
-    state.chef.wokAnim = Math.max(0, state.chef.wokAnim - dt * 2.8);
-  }
+  if (state.chef.wokAnim > 0) state.chef.wokAnim = Math.max(0, state.chef.wokAnim - dt * 2.8);
   const wr = state.stations.wokRight;
   wr.sweetPhase = 0.5 + 0.45 * Math.sin(state.time * 2.6);
   if (wr.flashTimer > 0) wr.flashTimer = Math.max(0, wr.flashTimer - dt);
 
   const wl = state.stations.wokLeft;
-  if (wl.stage !== 'scorched') {
+  if (wl.active && wl.stage !== 'scorched') {
     wl.timer -= dt;
     if (wl.timer <= 0) {
       if (wl.stage === 'cool') {

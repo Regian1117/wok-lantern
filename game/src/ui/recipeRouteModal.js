@@ -15,10 +15,10 @@ export function drawRecipeRouteModal(ctx, state, w, h) {
   if (state.mode !== 'route') return;
 
   const compact = w < 1120;
-  const modalW = Math.min(560, Math.round(w * 0.54));
-  const modalH = Math.min(478, h - 158);
-  const mx = w - modalW - 14;
-  const my = 102;
+  const modalW = Math.min(480, Math.round(w * 0.465));
+  const modalH = Math.min(448, h - 160);
+  const mx = w - modalW - 12;
+  const my = 104;
 
   drawPlaque(ctx, mx, my, modalW, modalH, THEME.ricePaper, THEME.brass, 2.4, 10);
 
@@ -43,8 +43,8 @@ export function drawRecipeRouteModal(ctx, state, w, h) {
   // 3 Shift progression pills
   const shifts = [
     { idx: 0, label: 'SHIFT 1 · ALLEY', done: true },
-    { idx: 1, label: 'SHIFT 2 · LANTERN HALL', active: state.shiftIndex === 1 },
-    { idx: 2, label: 'SHIFT 3 · BANQUET NEXT', active: state.shiftIndex === 2 },
+    { idx: 1, label: 'SHIFT 2 · HALL', active: state.shiftIndex === 1 },
+    { idx: 2, label: 'SHIFT 3 · BANQUET', active: state.shiftIndex === 2 },
   ];
   const sw = Math.floor((modalW - 40) / 3);
   const sy = my + 66;
@@ -52,21 +52,21 @@ export function drawRecipeRouteModal(ctx, state, w, h) {
     const sx = mx + 14 + i * (sw + 6);
     const active = state.shiftIndex === sh.idx;
     drawPlaque(ctx, sx, sy, sw, 36, active ? THEME.vipGold : sh.done ? THEME.jadeSoft : '#EFE4D1', active ? THEME.brass : '#B0895A', 1.6, 6);
-    if (sh.done) drawCheckIcon(ctx, sx + 14, sy + 18, 12, THEME.jade);
-    else if (active) drawPlayTriangleIcon(ctx, sx + 14, sy + 18, 10, THEME.brass);
+    if (sh.done) drawCheckIcon(ctx, sx + 12, sy + 18, 11, THEME.jade);
+    else if (active) drawPlayTriangleIcon(ctx, sx + 12, sy + 18, 9, THEME.brass);
     ctx.fillStyle = THEME.ink;
-    ctx.font = `bold ${compact ? 10 : 11}px ${FONT_UI}`;
+    ctx.font = `bold ${compact ? 9.5 : 10.5}px ${FONT_UI}`;
     ctx.textAlign = 'left';
-    ctx.fillText(sh.label, sx + 25, sy + 22);
+    ctx.fillText(sh.label, sx + 22, sy + 22);
     registerHitbox(state, `route_shift_${sh.idx}`, sx, sy, sw, 36);
   });
 
-  // High-contrast subtitle
-  const subY = sy + 56;
+  // High-contrast subtitle + shared batch prep badge
+  const subY = sy + 54;
   ctx.textAlign = 'left';
   ctx.fillStyle = THEME.ink;
-  ctx.font = `bold ${compact ? 12 : 13}px ${FONT_UI}`;
-  ctx.fillText('4 BASES x 3 PATHS = 12 COMBINABLE RECIPES', mx + 16, subY);
+  ctx.font = `bold ${compact ? 10.5 : 11.5}px ${FONT_UI}`;
+  ctx.fillText('4 BASES x 3 PATHS = 12 RECIPES · BATCH: CHILI/GREENS +$10', mx + 14, subY);
 
   // 2x2 Bold Dish Matrix Cards for 245px thumbnail legibility
   const gridY = subY + 12;

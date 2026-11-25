@@ -18,9 +18,7 @@ function handleModeInputs(state, actions, audio) {
     state.audioMuted = !state.audioMuted;
     if (audio) audio.setMuted(state.audioMuted);
   }
-  if (actions.KeyV && state.mode !== 'finish') {
-    state.povMode = state.povMode === 'diagonal' ? 'overhead' : 'diagonal';
-  }
+  if (actions.KeyV && state.mode !== 'finish') state.povMode = state.povMode === 'diagonal' ? 'overhead' : 'diagonal';
   if (actions.Escape && state.mode !== 'kitchen') {
     state.mode = 'kitchen';
     return;
@@ -38,30 +36,38 @@ function handleModeInputs(state, actions, audio) {
     if (actions.Space || actions.Enter) advanceToNextShift(state, audio);
     return;
   }
-  if (actions.KeyR || actions.Tab || actions.Digit1 || actions.Digit2 || actions.Digit3) {
-    if (state.mode === 'route') {
-      if (actions.Digit1) state.shiftIndex = 0;
-      else if (actions.Digit2) state.shiftIndex = 1;
-      else if (actions.Digit3) state.shiftIndex = 2;
-      else state.mode = 'kitchen';
-    } else {
-      state.mode = 'route';
-    }
+  if (actions.KeyR || actions.Tab) {
+    state.mode = state.mode === 'route' ? 'kitchen' : 'route';
+    return;
+  }
+  if (state.mode === 'route') {
+    if (actions.Digit1) state.shiftIndex = 0;
+    else if (actions.Digit2) state.shiftIndex = 1;
+    else if (actions.Digit3) state.shiftIndex = 2;
     return;
   }
   if (actions.KeyF) {
     enterFinishingPass(state);
     return;
   }
+
+  const near = state.chef.nearestStation;
   if (actions.KeyE) {
-    const targetId = state.chef.nearestStation ? state.chef.nearestStation.id : 'wok_right';
-    interactWithStation(state, targetId, audio);
+    if (near) interactWithStation(state, near.id, audio);
+    else state.feedbackBanner = { text: 'MOVE OR CLICK A STATION', tone: 'amber', timer: 1.2 };
   }
   if (actions.Space) {
-    if (state.stations.island.step >= state.stations.island.maxSteps) {
+    if (near && ['chop', 'wok_left', 'wok_right', 'pass'].includes(near.id)) {
+      interactWithStation(state, near.id, audio);
+    } else if (near && near.id === 'island') {
+      if (state.stations.island.step >= state.stations.island.maxSteps) enterFinishingPass(state);
+      else interactWithStation(state, 'island', audio);
+    } else if (state.chef.cookedDish && near && near.id === 'pass') {
+      serveBestOrder(state, audio);
+    } else if (state.stations.island.step >= state.stations.island.maxSteps) {
       enterFinishingPass(state);
     } else {
-      serveBestOrder(state, audio);
+      state.feedbackBanner = { text: 'WALK TO PASS TO SERVE', tone: 'amber', timer: 1.2 };
     }
   }
 }
@@ -112,7 +118,7 @@ export function stepSimulation(state, rawDt, input, audio) {
   if (state.rng() < dt * 8) spawnSteam(state, -0.45, 1.45, -3.15);
   if (state.rng() < dt * 10) spawnFlame(state, -1.75, 1.05, -3.15);
   const wlStage = state.stations.wokLeft.stage;
-  if ((wlStage === 'smoke' || wlStage === 'scorched') && state.rng() < dt * 9) {
+  if (state.stations.wokLeft.active && (wlStage === 'smoke' || wlStage === 'scorched') && state.rng() < dt * 9) {
     spawnSmoke(state, -3.05, 1.2, -3.15);
   }
   stepParticles(state, dt);

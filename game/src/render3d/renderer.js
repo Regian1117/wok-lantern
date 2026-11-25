@@ -8,6 +8,8 @@ import { buildKitchenFood } from './sceneFood.js';
 import { buildChefMesh } from './sceneChef.js';
 import { buildFinishHallScene } from './sceneHall.js';
 import { ROUTE_POINTS } from '../kitchen/layout.js';
+import { KITCHEN_STATIONS } from '../kitchen/stations.js';
+import { computeLiveNextStep } from '../kitchen/routeGuide.js';
 
 export function createWorldRenderer(glCanvas) {
   const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, preserveDrawingBuffer: true });
@@ -21,7 +23,7 @@ export function createWorldRenderer(glCanvas) {
   scene.background = new THREE.Color(0x160a08);
   scene.environment = buildStudioEnvironment(renderer);
 
-  const camera = new THREE.PerspectiveCamera(42, 16 / 9, 0.1, 60);
+  const camera = new THREE.PerspectiveCamera(36, 16 / 9, 0.1, 60);
   const mats = createMaterialLibrary();
   const lights = setupKitchenLighting(scene);
 
@@ -32,17 +34,22 @@ export function createWorldRenderer(glCanvas) {
   kitchenGroup.add(fixtures.group, food.group, chef.root);
   scene.add(kitchenGroup);
 
-  // Dashed golden route line in 3D for route mode
-  const routeCurvePts = ROUTE_POINTS.map((p) => new THREE.Vector3(p.x, 1.05, p.z));
-  const routeCurve = new THREE.CatmullRomCurve3(routeCurvePts);
+  const targetBeaconRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.45, 0.62, 28),
+    new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }),
+  );
+  targetBeaconRing.rotation.x = -Math.PI / 2;
+  targetBeaconRing.position.set(0, 0.03, 0);
+  targetBeaconRing.visible = false;
+  kitchenGroup.add(targetBeaconRing);
+
   const routeTube = new THREE.Mesh(
-    new THREE.TubeGeometry(routeCurve, 40, 0.045, 8, false),
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ROUTE_POINTS.map((p) => new THREE.Vector3(p.x, 1.05, p.z))), 40, 0.04, 8, false),
     mats.goldHighlightMat,
   );
   routeTube.visible = false;
   kitchenGroup.add(routeTube);
 
-  // Reusable particle pool
   const particlePool = [];
   const pGeo = new THREE.SphereGeometry(1, 8, 6);
   const pMats = {
@@ -71,15 +78,14 @@ export function createWorldRenderer(glCanvas) {
   }
 
   function applyCameraForMode(state) {
-    const mode = state.mode;
-    if (mode === 'finish') {
+    if (state.mode === 'finish') {
       camera.fov = 34;
       camera.position.set(0.16, 2.95, 3.35);
       camera.lookAt(0.32, 1.04, -0.35);
-    } else if (mode === 'route') {
+    } else if (state.mode === 'route') {
       camera.fov = 38;
-      camera.position.set(9.0, 9.6, 9.8);
-      camera.lookAt(2.5, 0.35, 0.1);
+      camera.position.set(10.2, 9.8, 10.6);
+      camera.lookAt(3.1, 0.35, 0.1);
     } else if (state.povMode === 'overhead') {
       camera.fov = 42;
       camera.position.set(0.0, 10.6, 7.2);
@@ -106,13 +112,28 @@ export function createWorldRenderer(glCanvas) {
         rim.visible = state.nextCrateIds.includes(id);
         if (rim.visible) rim.scale.setScalar(1 + pulse * 0.04);
       }
+
+      if (!state.shotMode && state.mode === 'kitchen') {
+        const nextGuide = computeLiveNextStep(state);
+        const st = KITCHEN_STATIONS.find((s) => s.id === nextGuide.targetStationId);
+        if (st) {
+          targetBeaconRing.visible = true;
+          targetBeaconRing.position.set(st.interactX ?? st.x, 0.03, st.interactZ ?? st.z);
+          targetBeaconRing.scale.setScalar(0.92 + pulse * 0.22);
+        } else {
+          targetBeaconRing.visible = false;
+        }
+      } else {
+        targetBeaconRing.visible = false;
+      }
+
+      food.passShowcase.visible = Boolean(state.shotMode || state.stations.pass.servedTimer > 0);
+      food.islandPlate.visible = Boolean(state.shotMode || state.stations.island.step > 0);
       fixtures.chopRing.visible = state.stations.chop.flashTimer > 0;
       fixtures.chopRing.scale.setScalar(1 + Math.sin(state.time * 12) * 0.08);
-      for (const wm of fixtures.waterMeshes) {
-        wm.position.y = 0.985 + Math.sin(state.time * 4) * 0.004;
-      }
+      for (const wm of fixtures.waterMeshes) wm.position.y = 0.985 + Math.sin(state.time * 4) * 0.004;
       food.flameCone.scale.set(1, 0.85 + Math.sin(state.time * 16) * 0.25, 1);
-      food.emberRing.visible = state.stations.wokLeft.stage !== 'cool';
+      food.emberRing.visible = state.stations.wokLeft.stage !== 'cool' || state.stations.wokLeft.scorched;
       lights.wokFlameLight.intensity = 2.2 + Math.sin(state.time * 14) * 0.6;
 
       for (let i = 0; i < particlePool.length; i++) {
@@ -129,8 +150,7 @@ export function createWorldRenderer(glCanvas) {
         mesh.material = pMats[p.kind] || pMats.steam;
       }
     } else {
-      const sway = Math.sin(state.time * 3.0) * 0.04;
-      finishHall.pourGrp.position.x = sway;
+      finishHall.pourGrp.position.x = Math.sin(state.time * 3.0) * 0.04;
       finishHall.drizzleRing.scale.setScalar(1 + Math.sin(state.time * 4) * 0.03);
     }
 
@@ -139,11 +159,7 @@ export function createWorldRenderer(glCanvas) {
 
   function projectWorldToScreen(x, y, z, width, height) {
     const v = new THREE.Vector3(x, y, z).project(camera);
-    return {
-      x: (v.x * 0.5 + 0.5) * width,
-      y: (-v.y * 0.5 + 0.5) * height,
-      visible: v.z >= -1 && v.z <= 1,
-    };
+    return { x: (v.x * 0.5 + 0.5) * width, y: (-v.y * 0.5 + 0.5) * height, visible: v.z >= -1 && v.z <= 1 };
   }
 
   function raycastFloor(ndcX, ndcY) {

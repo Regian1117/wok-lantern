@@ -1,78 +1,43 @@
 export const INITIAL_SHIFT_CLOCK = 100;
 
 import { createRng } from './rng.js';
+import { TWELVE_COMBINATIONS } from '../recipes/combinations.js';
+import { assignPatronToOrder } from '../service/guestMoods.js';
+import { createBatchPrepState } from '../recipes/batchPrep.js';
 
-export function createDefaultOrders() {
-  return [
-    {
-      id: 'ord_1',
-      recipeId: 'char_kway_teow',
-      title: 'CHAR KWAY TEOW',
-      base: 'Noodles',
-      stationPath: 'Wok Sear',
-      sauce: 'Chili Crisp',
-      price: 34,
-      stepLabel: 'Wok Sear: Noodles',
-      nextIng: 'Noodles',
-      timeLeft: 28,
-      maxTime: 40,
-      vip: false,
+export function createFreshStartOrders(rng, shiftIndex = 0) {
+  const unlockedBases = shiftIndex === 0 ? ['Noodles', 'Dumplings', 'Prawn'] : ['Noodles', 'Dumplings', 'Duck', 'Prawn'];
+  const pool = TWELVE_COMBINATIONS.filter((c) => unlockedBases.includes(c.base));
+  const picks = [pool[0], pool[4 % pool.length], pool[9 % pool.length] || pool[1], pool[2 % pool.length]];
+  return picks.map((pick, i) => {
+    const maxTime = pick.price >= 68 ? 46 : 32 + i * 3;
+    const ord = {
+      id: `ord_start_${i + 1}`,
+      recipeId: pick.id,
+      title: pick.title.toUpperCase(),
+      base: pick.base,
+      stationPath: pick.path,
+      sauce: pick.sauce,
+      price: pick.price,
+      stepLabel: `${pick.path}: ${pick.base}`,
+      nextIng: pick.base,
+      timeLeft: maxTime,
+      maxTime,
+      vip: pick.price >= 68,
       urgent: false,
-    },
-    {
-      id: 'ord_2',
-      recipeId: 'xiaolongbao',
-      title: 'XIAOLONGBAO',
-      base: 'Dumplings',
-      stationPath: 'Bamboo Steam',
-      sauce: 'Black Vinegar',
-      price: 38,
-      stepLabel: 'Steam: Dumplings',
-      nextIng: 'Dumplings',
-      timeLeft: 22,
-      maxTime: 36,
-      vip: false,
-      urgent: false,
-    },
-    {
-      id: 'ord_3',
-      recipeId: 'vip_peking_duck',
-      title: 'VIP PEKING DUCK',
-      base: 'Duck',
-      stationPath: 'Island Carve',
-      sauce: 'Plum Glaze',
-      price: 74,
-      stepLabel: 'Carve 2/3 -> Glaze',
-      nextIng: 'Duck',
-      timeLeft: 32,
-      maxTime: 48,
-      vip: true,
-      urgent: false,
-    },
-    {
-      id: 'ord_4',
-      recipeId: 'chili_prawn',
-      title: 'CHILI PRAWN',
-      base: 'Prawn',
-      stationPath: 'Wok Sear',
-      sauce: 'Chili Crisp',
-      price: 46,
-      stepLabel: 'Next: Prawn (0:04)',
-      nextIng: 'Prawn',
-      timeLeft: 4,
-      maxTime: 30,
-      vip: false,
-      urgent: true,
-    },
-  ];
+    };
+    ord.patron = assignPatronToOrder(ord, rng, shiftIndex);
+    return ord;
+  });
 }
 
 export function createGameState(seed = 1) {
+  const rng = createRng(seed);
   return {
     seed: Number(seed) || 1,
-    rng: createRng(seed),
+    rng,
     mode: 'kitchen',
-    shiftIndex: 1,
+    shiftIndex: 0,
     clockSec: INITIAL_SHIFT_CLOCK,
     time: 0,
     paused: false,
@@ -82,6 +47,7 @@ export function createGameState(seed = 1) {
     chopMeter: 0.52,
     chopDir: 1,
     feedbackBanner: null,
+    batchPrep: createBatchPrepState(),
     chef: {
       x: -1.85,
       z: 1.35,
@@ -89,7 +55,7 @@ export function createGameState(seed = 1) {
       walkPhase: 0,
       chopAnim: 0,
       wokAnim: 0,
-      holding: 'dumplings',
+      holding: null,
       prepped: false,
       cookedDish: null,
       waypoints: [],
@@ -98,49 +64,38 @@ export function createGameState(seed = 1) {
       moveSpeed: 3.4,
     },
     stations: {
-      wokLeft: { scorched: true, stage: 'scorched', heat: 1.0, timer: 4.5, item: 'chili' },
+      wokLeft: { scorched: false, active: false, stage: 'cool', heat: 0, timer: 5.0, item: null },
       wokRight: {
-        active: true,
-        item: 'noodles',
-        progress: 0.72,
+        active: false,
+        item: null,
+        progress: 0,
         sweetPhase: 0.52,
         sweetCenter: 0.5,
         sweetWidth: 0.22,
-        heatCombo: 6,
-        flashTimer: 0.8,
-        callout: 'WOK HEI x6 · SEAR!',
+        heatCombo: 1,
+        flashTimer: 0,
+        callout: 'WOK HEI x1 · SEAR!',
       },
-      steamer: { active: true, item: 'dumplings', progress: 0.82, tiers: 3 },
-      chop: { flashTimer: 0.9, hitstop: 0, lastLabel: 'CHOP! PERFECT', choppedItem: 'scallion' },
-      island: { dishId: 'vip_peking_duck', label: 'PEKING DUCK · 2/3', step: 2, maxSteps: 3, progress: 0.67 },
-      pass: {
-        readyCount: 3,
-        activeReadyLabel: 'READY TO SERVE · [SPACE]',
-        platedDish: {
-          recipeId: 'char_kway_teow',
-          base: 'Noodles',
-          stationPath: 'Wok Sear',
-          sauce: 'Chili Crisp',
-          prepared: true,
-          finished: true,
-        },
-      },
+      steamer: { active: false, item: null, progress: 0, tiers: 3 },
+      chop: { flashTimer: 0, hitstop: 0, lastLabel: 'CHOP! READY', choppedItem: null },
+      island: { dishId: 'vip_peking_duck', label: 'PEKING DUCK · 0/3', step: 0, maxSteps: 3, progress: 0 },
+      pass: { readyCount: 0, activeReadyLabel: 'READY TO SERVE · [SPACE]', platedDish: null, showcasePlates: false, servedDisplay: null, servedTimer: 0 },
     },
-    orders: createDefaultOrders(),
+    orders: createFreshStartOrders(rng, 0),
     ledger: {
-      dishesServed: 8,
-      avgPrice: 50,
-      basePay: 400,
-      heatCombo: 6,
-      heatMult: 6,
-      heiBonus: 100,
-      scorchCount: 1,
-      scorchPenalty: 20,
+      dishesServed: 0,
+      avgPrice: 0,
+      basePay: 0,
+      heatCombo: 1,
+      heatMult: 1,
+      heiBonus: 0,
+      scorchCount: 0,
+      scorchPenalty: 0,
       lateOrderCount: 0,
       latePenaltyTotal: 0,
-      grossSubtotal: 500,
-      netPay: 480,
-      stars: 3,
+      grossSubtotal: 0,
+      netPay: 0,
+      stars: 0,
       unlockedUpgrade: 'jet_wok',
     },
     finishing: {
@@ -158,7 +113,7 @@ export function createGameState(seed = 1) {
       ],
     },
     upgrades: { jet_wok: true, triple_steamer: false, silk_pass: false },
-    nextCrateIds: ['crate_chili', 'crate_prawn'],
+    nextCrateIds: ['crate_noodles'],
     particles: [],
     hudRects: [],
     hudBounds: {},
